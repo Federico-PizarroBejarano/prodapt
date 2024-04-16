@@ -1,5 +1,7 @@
 */output/*
+outputs/*
 data/*
 *__pycache__
 *.pt
 *.ckpt
+*.mp4

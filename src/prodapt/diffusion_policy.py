@@ -47,13 +47,17 @@ class DiffusionPolicy:
         self,
         obs_dim,
         action_dim,
-        obs_horizon,
+        obs_horizon, 
+        pred_horizon,
+        action_horizon,
         training_data_stats,
         num_diffusion_iters=100,
     ):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.obs_horizon = obs_horizon
+        self.pred_horizon = pred_horizon
+        self.action_horizon = action_horizon
         self.training_data_stats = training_data_stats
         self.diffusion_network = ConditionalUnet1D(
             input_dim=action_dim, global_cond_dim=obs_dim * obs_horizon
@@ -83,7 +87,7 @@ class DiffusionPolicy:
             params=self.diffusion_network.parameters(), lr=1e-4, weight_decay=1e-6
         )
 
-    def train(self, num_epochs):
+    def train(self, num_epochs, dataloader):
         # Cosine LR schedule with linear warmup
         self.lr_scheduler = get_scheduler(
             name="cosine",
@@ -107,7 +111,7 @@ class DiffusionPolicy:
 
                         # observation as FiLM conditioning
                         # (B, obs_horizon, obs_dim)
-                        obs_cond = nobs[:, :obs_horizon, :]
+                        obs_cond = nobs[:, :self.obs_horizon, :]
                         # (B, obs_horizon * obs_dim)
                         obs_cond = obs_cond.flatten(start_dim=1)
 
@@ -143,9 +147,6 @@ class DiffusionPolicy:
                         # step lr scheduler every batch
                         # this is different from standard pytorch behavior
                         self.lr_scheduler.step()
-                        if epoch_idx % 5 == 0:
-                            # save checkpoint every 5 epochs
-                            self.save("./checkpoints")
 
                         # update Exponential Moving Average of the model weights
                         self.ema_model.step(self.diffusion_network.parameters())
@@ -154,12 +155,12 @@ class DiffusionPolicy:
                         loss_cpu = loss.item()
                         epoch_loss.append(loss_cpu)
                         tepoch.set_postfix(loss=loss_cpu)
+                    if epoch_idx % 5 == 0:
+                        # save checkpoint every 5 epochs
+                        self.save("./checkpoints")
                 tglobal.set_postfix(loss=np.mean(epoch_loss))
 
     def inference(self):
-        ema_diffusion_network = self.diffusion_network
-        self.ema_model.copy_to(ema_diffusion_network.parameters())
-
         # limit enviornment interaction to 200 steps before termination
         max_steps = 200
         env = PushTEnv()
@@ -170,7 +171,7 @@ class DiffusionPolicy:
         obs, info = env.reset()
 
         # keep a queue of last 2 steps of observations
-        obs_deque = collections.deque([obs] * obs_horizon, maxlen=obs_horizon)
+        obs_deque = collections.deque([obs] * self.obs_horizon, maxlen=self.obs_horizon)
         # save visualization and rewards
         imgs = [env.render(mode="rgb_array")]
         rewards = list()
@@ -194,7 +195,7 @@ class DiffusionPolicy:
 
                     # initialize action from Guassian noise
                     noisy_action = torch.randn(
-                        (B, pred_horizon, action_dim), device=device
+                        (B, self.pred_horizon, self.action_dim), device=device
                     )
                     naction = noisy_action
 
@@ -221,8 +222,8 @@ class DiffusionPolicy:
                 )
 
                 # only take action_horizon number of actions
-                start = obs_horizon - 1
-                end = start + action_horizon
+                start = self.obs_horizon - 1
+                end = start + self.action_horizon
                 action = action_pred[start:end, :]
                 # (action_horizon, action_dim)
 
@@ -271,29 +272,3 @@ class DiffusionPolicy:
         self.diffusion_network.load_state_dict(state_dict)
         print("Pretrained weights loaded.")
 
-
-if __name__ == "__main__":
-    obs_dim = 5
-    action_dim = 2
-    obs_horizon = 2
-
-    # load data
-    dataset_path = "./data/push_t_data.zarr"
-    # parameters
-    pred_horizon = 16
-    obs_horizon = 2
-    action_horizon = 8
-    # |o|o|                             observations: 2
-    # | |a|a|a|a|a|a|a|a|               actions executed: 8
-    # |p|p|p|p|p|p|p|p|p|p|p|p|p|p|p|p| actions predicted: 16
-
-    # create dataset from file
-    dataloader, stats = create_push_t_dataloader(
-        dataset_path, pred_horizon, obs_horizon, action_horizon
-    )
-
-    diffusion_policy = DiffusionPolicy(
-        obs_dim, action_dim, obs_horizon, stats, num_diffusion_iters=100
-    )
-    diffusion_policy.load("./checkpoints/pusht_state_100ep.ckpt")
-    diffusion_policy.inference()
