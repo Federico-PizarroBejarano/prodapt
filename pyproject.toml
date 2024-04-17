@@ -11,7 +11,7 @@ dependencies = [
   "torch==2.2.1",
   "torchvision",
   "diffusers==0.18.2",
-  "scikit-image==0.19.3", 
+  "scikit-image==0.19.3",
   "scikit-video==1.1.11",
   "zarr==2.12.0",
   "numcodecs==0.12.1",

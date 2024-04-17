@@ -47,7 +47,7 @@ class DiffusionPolicy:
         self,
         obs_dim,
         action_dim,
-        obs_horizon, 
+        obs_horizon,
         pred_horizon,
         action_horizon,
         training_data_stats,
@@ -111,7 +111,7 @@ class DiffusionPolicy:
 
                         # observation as FiLM conditioning
                         # (B, obs_horizon, obs_dim)
-                        obs_cond = nobs[:, :self.obs_horizon, :]
+                        obs_cond = nobs[:, : self.obs_horizon, :]
                         # (B, obs_horizon * obs_dim)
                         obs_cond = obs_cond.flatten(start_dim=1)
 
@@ -271,4 +271,3 @@ class DiffusionPolicy:
         state_dict = torch.load(input_path, map_location="cuda")
         self.diffusion_network.load_state_dict(state_dict)
         print("Pretrained weights loaded.")
-

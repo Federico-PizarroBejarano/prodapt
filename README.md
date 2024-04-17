@@ -8,9 +8,9 @@ The initial work in this repo is evolving from cleaning up sections of code from
 A list of common problems that may be encountered when first setting up the repo
 
 ---
-Error: 
+Error:
 ```
-AssertionError: Cannot find installation of real FFmpeg (which comes with ffprobe
+AssertionError: Cannot find installation of real FFmpeg (which comes with ffprobe)
 ```
 Problem:
 FFmpeg has likely not been installed or updated on your host
