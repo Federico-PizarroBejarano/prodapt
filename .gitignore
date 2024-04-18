@@ -5,3 +5,7 @@ data/*
 *.pt
 *.ckpt
 *.mp4
+
+build/
+log/
+install/
