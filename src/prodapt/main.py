@@ -1,5 +1,5 @@
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from prodapt.diffusion_policy import DiffusionPolicy, create_push_t_dataloader
 

@@ -8,9 +8,10 @@ from diffusers.optimization import get_scheduler
 from tqdm.auto import tqdm
 import os
 from skvideo.io import vwrite
+import hydra
 
 from prodapt.envs.push_t import PushTEnv
-from prodapt.dataset.push_t_data import normalize_data, unnormalize_data
+from prodapt.dataset.dataset_utils import normalize_data, unnormalize_data
 from prodapt.diffusion.conditional_unet_1d import ConditionalUnet1D
 from prodapt.dataset.push_t_data import PushTStateDataset
 
@@ -253,8 +254,9 @@ class DiffusionPolicy:
         # visualize
         from IPython.display import Video
 
-        vwrite("vis.mp4", imgs)
-        Video("vis.mp4", embed=True, width=256, height=256)
+        output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+        vwrite(f"{output_dir}/vis.mp4", imgs)
+        Video(f"{output_dir}/vis.mp4", embed=True, width=256, height=256)
 
     def save(self, output_path):
         if not os.path.exists(output_path):
