@@ -1,0 +1,24 @@
+name: push_t
+mode: inference
+seed: 4077
+
+train:
+  num_epochs: 100
+  dataset_path: "./data/push_t_data.zarr"
+
+inference:
+  max_steps: 200
+  render: True
+  checkpoint_path: "./checkpoints/pusht_state_100ep.ckpt"
+
+parameters:
+  num_diffusion_iters: 100
+
+  # Dimensions
+  obs_dim: 5
+  action_dim: 2
+
+  # Diffusion horizons
+  pred_horizon: 16
+  obs_horizon: 2
+  action_horizon: 8

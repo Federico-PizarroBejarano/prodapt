@@ -8,13 +8,12 @@ from prodapt.dataset.dataset_utils import (
     normalize_data,
 )
 
-
-# ### **Dataset**
+### StateDataset class
 #
-# Defines `PushTStateDataset` and helper functions
+# Defines generic StateDataset class
 #
-# The dataset class
-# - Load data (obs, action) from a zarr storage
+# The StateDataset class
+# - Loads data (obs, action) from a zarr storage
 # - Normalizes each dimension of obs and action to [-1,1]
 # - Returns
 #   - All possible segments with length `pred_horizon`
@@ -22,33 +21,30 @@ from prodapt.dataset.dataset_utils import (
 #   - key `obs`: shape (obs_horizon, obs_dim)
 #   - key `action`: shape (pred_horizon, action_dim)
 
-# dataset
-class PushTStateDataset(torch.utils.data.Dataset):
+
+class StateDataset(torch.utils.data.Dataset):
     def __init__(self, dataset_path, pred_horizon, obs_horizon, action_horizon):
-        # read from zarr dataset
+        # Read from zarr dataset
         dataset_root = zarr.open(dataset_path, "r")
-        # All demonstration episodes are concatinated in the first dimension N
+        # All demonstration episodes are concatenated in the first dimension N
         train_data = {
-            # (N, action_dim)
-            "action": dataset_root["data"]["action"][:],
-            # (N, obs_dim)
-            "obs": dataset_root["data"]["state"][:],
+            "action": dataset_root["data"]["action"][:],  # (N, action_dim)
+            "obs": dataset_root["data"]["state"][:],  # (N, obs_dim)
         }
         # Marks one-past the last index for each episode
         episode_ends = dataset_root["meta"]["episode_ends"][:]
         print("meta data: ", dataset_root.tree())
 
-        # compute start and end of each state-action sequence
-        # also handles padding
+        # Computes start and end of each state-action sequence and pads
         indices = create_sample_indices(
             episode_ends=episode_ends,
             sequence_length=pred_horizon,
-            # add padding such that each timestep in the dataset are seen
+            # Add padding such that each timestep in the dataset is seen
             pad_before=obs_horizon - 1,
             pad_after=action_horizon - 1,
         )
 
-        # compute statistics and normalized data to [-1,1]
+        # Compute statistics and normalize data to [-1,1]
         stats = dict()
         normalized_train_data = dict()
         for key, data in train_data.items():
@@ -63,11 +59,11 @@ class PushTStateDataset(torch.utils.data.Dataset):
         self.obs_horizon = obs_horizon
 
     def __len__(self):
-        # all possible segments of the dataset
+        # All possible segments of the dataset
         return len(self.indices)
 
     def __getitem__(self, idx):
-        # get the start/end indices for this datapoint
+        # Get the start/end indices for this datapoint
         (
             buffer_start_idx,
             buffer_end_idx,
@@ -75,7 +71,7 @@ class PushTStateDataset(torch.utils.data.Dataset):
             sample_end_idx,
         ) = self.indices[idx]
 
-        # get normalized data using these indices
+        # Get normalized data using these indices
         nsample = sample_sequence(
             train_data=self.normalized_train_data,
             sequence_length=self.pred_horizon,
@@ -85,44 +81,51 @@ class PushTStateDataset(torch.utils.data.Dataset):
             sample_end_idx=sample_end_idx,
         )
 
-        # discard unused observations
+        # Discard unused observations
         nsample["obs"] = nsample["obs"][: self.obs_horizon, :]
         return nsample
 
 
-if __name__ == "__main__":
-    dataset_path = "./data/push_t_data.zarr"
-    # parameters
-    pred_horizon = 16
-    obs_horizon = 2
-    action_horizon = 8
-    # |o|o|                             observations: 2
-    # | |a|a|a|a|a|a|a|a|               actions executed: 8
-    # |p|p|p|p|p|p|p|p|p|p|p|p|p|p|p|p| actions predicted: 16
-
-    # create dataset from file
-    dataset = PushTStateDataset(
+def create_state_dataloader(dataset_path, pred_horizon, obs_horizon, action_horizon):
+    # Create dataset from file
+    dataset = StateDataset(
         dataset_path=dataset_path,
         pred_horizon=pred_horizon,
         obs_horizon=obs_horizon,
         action_horizon=action_horizon,
     )
-    # save training data statistics (min, max) for each dim
+    # Save training data statistics (min, max) for each dim
     stats = dataset.stats
 
-    # create dataloader
+    # Create DataLoader
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=256,
         num_workers=1,
         shuffle=True,
-        # accelerate cpu-gpu transfer
+        # Accelerate cpu-gpu transfer
         pin_memory=True,
-        # don't kill worker process afte each epoch
+        # Don't kill worker process afte each epoch
         persistent_workers=True,
     )
+    return dataloader, stats
 
-    # visualize data in batch
+
+if __name__ == "__main__":
+    dataset_path = "./data/push_t_data.zarr"
+
+    pred_horizon = 16
+    obs_horizon = 2
+    action_horizon = 8
+    # |o|o|                              observations: 2
+    # | |a|a|a|a|a|a|a|a|                actions executed: 8
+    # |p|p|p|p|p|p|p|p|p|p|p|p|p|p|p|p|  actions predicted: 16
+
+    dataloader, stats = create_state_dataloader(
+        dataset_path, pred_horizon, obs_horizon, action_horizon
+    )
+
+    # Visualize data in batch
     batch = next(iter(dataloader))
     print("batch['obs'].shape:", batch["obs"].shape)
     print("batch['action'].shape", batch["action"].shape)
