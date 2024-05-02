@@ -1,0 +1,24 @@
+name: ur10
+mode: inference
+seed: 4077
+
+train:
+  num_epochs: 100
+  dataset_path: "./data/ur10/ur10.zarr"
+
+inference:
+  max_steps: 350
+  render: False
+  checkpoint_path: "./checkpoints/diffusion_policy.pt"
+
+parameters:
+  num_diffusion_iters: 100
+
+  # Dimensions
+  obs_dim: 18
+  action_dim: 6
+
+  # Diffusion horizons
+  pred_horizon: 16
+  obs_horizon: 2
+  action_horizon: 8

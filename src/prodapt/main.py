@@ -4,6 +4,7 @@ from omegaconf import DictConfig
 from prodapt.dataset.state_dataset import create_state_dataloader
 from prodapt.diffusion_policy import DiffusionPolicy
 from prodapt.envs.push_t_env import PushTEnv
+from prodapt.envs.ur10_env import UR10Env
 
 
 # HACK: Fix these relative paths for configs
@@ -19,6 +20,8 @@ def main_app(cfg: DictConfig) -> None:
 
     if cfg.name == "push_t":
         env_func = PushTEnv
+    elif cfg.name == "ur10":
+        env_func = UR10Env
     else:
         raise NotImplementedError(f"Unknown environment type ({cfg.name}).")
 
