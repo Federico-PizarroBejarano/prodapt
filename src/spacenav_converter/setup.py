@@ -16,5 +16,10 @@ setup(
     maintainer_email="bejarano@jpl.nasa.gov",
     description="Converts Spacenav messages from 3D mouse to different messages to command UR10.",
     license="Copyright 2024 NASA Jet Propulsion Laboratory",
-    entry_points={"console_scripts": ["converter = spacenav_converter.converter:main"]},
+    entry_points={
+        "console_scripts": [
+            "converter_movel = spacenav_converter.converter_movel:main",
+            "converter_joints = spacenav_converter.converter_joints:main",
+        ]
+    },
 )

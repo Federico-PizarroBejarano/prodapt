@@ -5,7 +5,7 @@ from sensor_msgs.msg import JointState
 
 class JointStatesSubscriber(Node):
     def __init__(self):
-        super().__init__("minimal_subscriber")
+        super().__init__("joint_states_subscriber")
         self.subscription = self.create_subscription(
             JointState, "/joint_states", self.listener_callback, 10
         )

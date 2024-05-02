@@ -19,14 +19,14 @@ def main_app(cfg: DictConfig) -> None:
     )
 
     if cfg.name == "push_t":
-        env_func = PushTEnv
+        env = PushTEnv()
     elif cfg.name == "ur10":
-        env_func = UR10Env
+        env = UR10Env(controller=cfg.controller)
     else:
         raise NotImplementedError(f"Unknown environment type ({cfg.name}).")
 
     diffusion_policy = DiffusionPolicy(
-        env_func=env_func,
+        env=env,
         obs_dim=cfg.parameters.obs_dim,
         action_dim=cfg.parameters.action_dim,
         obs_horizon=cfg.parameters.obs_horizon,

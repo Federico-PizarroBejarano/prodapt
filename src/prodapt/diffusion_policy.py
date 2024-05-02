@@ -19,7 +19,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class DiffusionPolicy:
     def __init__(
         self,
-        env_func,
+        env,
         obs_dim,
         action_dim,
         obs_horizon,
@@ -29,7 +29,7 @@ class DiffusionPolicy:
         num_diffusion_iters,
         seed=4077,
     ):
-        self.env = env_func()
+        self.env = env
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.obs_horizon = obs_horizon

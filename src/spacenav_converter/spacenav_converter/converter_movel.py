@@ -8,12 +8,12 @@ from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from tf_transformations import quaternion_from_euler, quaternion_multiply
 
-from math import acos
+from prodapt.utils.rotation_utils import quaternion_to_axis_angle
 
 
-class Converter(Node):
+class ConverterToMovel(Node):
     def __init__(self):
-        super().__init__("converter")
+        super().__init__("converter_to_movel")
         self.publisher = self.create_publisher(
             String, "/urscript_interface/script_command", 10
         )
@@ -56,7 +56,7 @@ class Converter(Node):
             quat_new_normalized = [rot / magnitude for rot in quat_new]
 
             # URScript only accepts rotation commands in axis-angle format
-            (ax, ay, az) = axis_angle_from_quaternion(quat_new_normalized)
+            (ax, ay, az) = quaternion_to_axis_angle(quat_new_normalized)
 
             urscript_msg = String()
             urscript_msg.data = """
@@ -85,19 +85,9 @@ end""".format(
         self.last_command = [linear, angular]
 
 
-def axis_angle_from_quaternion(quat):
-    x, y, z, w = quat
-    theta = acos(w) * 2
-    s = (1 - w**2) ** 0.5
-    if s < 0.001:
-        return x, y, z
-    else:
-        return x * theta / s, y * theta / s, z * theta / s
-
-
 def main(args=None):
     rclpy.init(args=args)
-    converter = Converter()
+    converter = ConverterToMovel()
     rclpy.spin(converter)
 
     converter.destroy_node()

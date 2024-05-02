@@ -2,7 +2,10 @@
 
 It is possible to control robots using a 3D mouse such as the 3DConnexion SpaceMouse. This allows for controlling the end-effector's position and orientation with one hand.
 
-To accomplish this, the `spacenav` ROS package is used (https://index.ros.org/p/spacenav/) which converts the signal from the 3Dconnexion SpaceMouse into various ROS2 messages, including `/spacenav/twist (geometry_msgs/msg/Twist)`. The custom ROS2 package [spacenav_converter](../src/spacenav_converter/spacenav_converter/converter.py) is used to listen to the `/spacenav/twist` topic and convert those messages to MoveL commands (a linear move command used by the Universal Robots scripting language, URScript) which is sent to the robot (real or simulated) via the `/urscript_interface/script_command` topic.
+To accomplish this, the `spacenav` ROS package is used (https://index.ros.org/p/spacenav/) which converts the signal from the 3Dconnexion SpaceMouse into various ROS2 messages, including `/spacenav/twist (geometry_msgs/msg/Twist)`. The custom ROS2 package `spacenav_converter` is used to listen to the `/spacenav/twist` topic. This twist is turned into a desired pose offset, and used to calculate the next desired pose. The desired pose is then sent as a command to the UR10 via (currently) two possible interfaces:
+- MoveL commands (a linear move command used by the Universal Robots scripting language, URScript) which is sent to the robot (real or simulated) via the `/urscript_interface/script_command` topic.
+- Joint positions, calculated using the inverse kinematics in [kinematics_utils.py](../src/spacenav_converter/spacenav_to_movel/kinematics_utils.py), sent to the robot via the `/scaled_joint_trajectory_controller/joint_trajectory` topic.
+
 
 
 ### Steps
@@ -33,7 +36,7 @@ To accomplish this, the `spacenav` ROS package is used (https://index.ros.org/p/
     ```bash
     cd ~/prodapt
     source install/setup.bash
-    ros2 run spacenav_converter converter
+    ros2 run spacenav_converter converter_movel  # or 'converter_joints' to control via joint positions
     ```
     Now you should be able to control the robot with the SpaceMouse by moving the SpaceMouse in the desired direction and orientation (i.e., not touching the SpaceMouse should cause the robot to stay still).
 
@@ -51,3 +54,9 @@ and view the PDF with
 ```bash
 xdg-open frames.pdf
 ```
+---
+If the robot is not moving when using the joint commands, confirm that the `/scaled_joint_trajectory_controller/joint_trajectory` has a subscriber by running
+```bash
+ros2 topic info /scaled_joint_trajectory_controller/joint_trajectory
+```
+If there are no subscribers, kill the URSim and ur-driver docker containers and restart them until the topic appears in `ros2 topic list` and has a subscriber.
