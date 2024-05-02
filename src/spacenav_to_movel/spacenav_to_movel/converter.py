@@ -52,7 +52,7 @@ class Converter(Node):
             ]
             quat_delta = quaternion_multiply(angular_vel_delta, quat_curr)
             quat_new = [sum(i) for i in zip(quat_curr, quat_delta)]
-            magnitude = sum([i ** 2 for i in quat_new]) ** 0.5
+            magnitude = sum([i**2 for i in quat_new]) ** 0.5
             quat_new_normalized = [rot / magnitude for rot in quat_new]
 
             # URScript only accepts rotation commands in axis-angle format
@@ -67,8 +67,9 @@ def my_prog():
     movel(p[{0}, {1}, {2}, {3}, {4}, {5}], a=1.2, v=0.25, r=0)
 
 end""".format(
-                t.transform.translation.x + self.timer_period * linear.x,
-                t.transform.translation.y + self.timer_period * linear.y,
+                # Inverting x & y directions to be more intuitive
+                t.transform.translation.x - self.timer_period * linear.x,
+                t.transform.translation.y - self.timer_period * linear.y,
                 t.transform.translation.z + self.timer_period * linear.z,
                 ax,
                 ay,
@@ -87,7 +88,7 @@ end""".format(
 def axis_angle_from_quaternion(quat):
     x, y, z, w = quat
     theta = acos(w) * 2
-    s = (1 - w ** 2) ** 0.5
+    s = (1 - w**2) ** 0.5
     if s < 0.001:
         return x, y, z
     else:
