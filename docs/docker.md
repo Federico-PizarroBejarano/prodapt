@@ -2,6 +2,7 @@
 
 There are two Docker containers described in `prodapt/docker`, one for the URSim Simulator and one for the ROS2 Humble driver for Universal Robots ([ur-driver](../docker/ur-driver/Dockerfile)). This Docker setup is inspired by https://github.com/maffettone/erobs/.
 
+
 ### Running the Docker Containers
 1. Build the two images.
     ```bash
@@ -19,6 +20,7 @@ There are two Docker containers described in `prodapt/docker`, one for the URSim
     ```bash
     docker compose up ur-driver
     ```
+
 
 ### Confirming it is Working
 1. Once both containers are running, it should be possible to see the ROS topics. In a new terminal, run:

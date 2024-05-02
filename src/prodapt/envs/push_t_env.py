@@ -1,8 +1,8 @@
 from typing import Tuple, Sequence, Dict, Union, Optional
 import numpy as np
 import collections
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import pygame
 import pymunk
 import pymunk.pygame_util

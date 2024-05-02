@@ -1,3 +1,0 @@
-main:
-  mode: inference
-  checkpoint: "./checkpoints/pusht_state_100ep.ckpt"

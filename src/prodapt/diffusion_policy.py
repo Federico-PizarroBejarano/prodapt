@@ -10,60 +10,40 @@ import os
 from skvideo.io import vwrite
 import hydra
 
-from prodapt.envs.push_t import PushTEnv
 from prodapt.dataset.dataset_utils import normalize_data, unnormalize_data
 from prodapt.diffusion.conditional_unet_1d import ConditionalUnet1D
-from prodapt.dataset.push_t_data import PushTStateDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def create_push_t_dataloader(dataset_path, pred_horizon, obs_horizon, action_horizon):
-    # create dataset from file
-    dataset = PushTStateDataset(
-        dataset_path=dataset_path,
-        pred_horizon=pred_horizon,
-        obs_horizon=obs_horizon,
-        action_horizon=action_horizon,
-    )
-    # save training data statistics (min, max) for each dim
-    stats = dataset.stats
-
-    # create dataloader
-    dataloader = torch.utils.data.DataLoader(
-        dataset,
-        batch_size=256,
-        num_workers=1,
-        shuffle=True,
-        # accelerate cpu-gpu transfer
-        pin_memory=True,
-        # don't kill worker process afte each epoch
-        persistent_workers=True,
-    )
-    return dataloader, stats
 
 
 class DiffusionPolicy:
     def __init__(
         self,
+        env_func,
         obs_dim,
         action_dim,
         obs_horizon,
         pred_horizon,
         action_horizon,
         training_data_stats,
-        num_diffusion_iters=100,
+        num_diffusion_iters,
+        seed=4077,
     ):
+        self.env = env_func()
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.obs_horizon = obs_horizon
         self.pred_horizon = pred_horizon
         self.action_horizon = action_horizon
         self.training_data_stats = training_data_stats
+        self.num_diffusion_iters = num_diffusion_iters
+
+        self.seed = seed
+        self.set_seed(self.seed)
+
         self.diffusion_network = ConditionalUnet1D(
             input_dim=action_dim, global_cond_dim=obs_dim * obs_horizon
         ).to(device)
-        self.num_diffusion_iters = num_diffusion_iters
         self.noise_scheduler = DDPMScheduler(
             num_train_timesteps=num_diffusion_iters,
             # the choice of beta schedule has big impact on performance
@@ -161,25 +141,23 @@ class DiffusionPolicy:
                         self.save("./checkpoints")
                 tglobal.set_postfix(loss=np.mean(epoch_loss))
 
-    def inference(self):
-        # limit enviornment interaction to 200 steps before termination
-        max_steps = 200
-        env = PushTEnv()
-        # use a seed >200 to avoid initial states seen in the training dataset
-        env.seed(100000)
+    def inference(self, max_steps, render=False):
+        env = self.env
+        env.seed(self.seed)
 
         # get first observation
-        obs, info = env.reset()
+        obs, _ = env.reset()
 
-        # keep a queue of last 2 steps of observations
+        # keep a queue of last obs_horizon steps of observations
         obs_deque = collections.deque([obs] * self.obs_horizon, maxlen=self.obs_horizon)
-        # save visualization and rewards
-        imgs = [env.render(mode="rgb_array")]
+
+        if render:
+            imgs = [env.render(mode="rgb_array")]
         rewards = list()
         done = False
         step_idx = 0
 
-        with tqdm(total=max_steps, desc="Eval PushTStateEnv") as pbar:
+        with tqdm(total=max_steps, desc="Evaluation") as pbar:
             while not done:
                 B = 1
                 # stack the last obs_horizon (2) number of observations
@@ -235,9 +213,11 @@ class DiffusionPolicy:
                     obs, reward, done, _, info = env.step(action[i])
                     # save observations
                     obs_deque.append(obs)
-                    # and reward/vis
+                    # and reward
                     rewards.append(reward)
-                    imgs.append(env.render(mode="rgb_array"))
+
+                    if render:
+                        imgs.append(env.render(mode="rgb_array"))
 
                     # update progress bar
                     step_idx += 1
@@ -251,12 +231,12 @@ class DiffusionPolicy:
         # print out the maximum target coverage
         print("Score: ", max(rewards))
 
-        # visualize
-        from IPython.display import Video
+        if render:
+            from IPython.display import Video
 
-        output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
-        vwrite(f"{output_dir}/vis.mp4", imgs)
-        Video(f"{output_dir}/vis.mp4", embed=True, width=256, height=256)
+            output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+            vwrite(f"{output_dir}/vis.mp4", imgs)
+            Video(f"{output_dir}/vis.mp4", embed=True, width=256, height=256)
 
     def save(self, output_path):
         if not os.path.exists(output_path):
@@ -273,3 +253,10 @@ class DiffusionPolicy:
         state_dict = torch.load(input_path, map_location="cuda")
         self.diffusion_network.load_state_dict(state_dict)
         print("Pretrained weights loaded.")
+
+    def set_seed(self, seed):
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
