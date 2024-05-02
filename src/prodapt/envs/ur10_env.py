@@ -3,10 +3,10 @@ import gymnasium as gym
 import rclpy
 import time
 
-from spacenav_to_movel.spacenav_to_movel.joint_states_subscriber import (
+from spacenav_converter.spacenav_converter.joint_states_subscriber import (
     JointStatesSubscriber,
 )
-from spacenav_to_movel.spacenav_to_movel.movel_publisher import MovelPublisher
+from spacenav_converter.spacenav_converter.movel_publisher import MovelPublisher
 
 
 class UR10Env(gym.Env):
