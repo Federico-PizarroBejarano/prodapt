@@ -2,6 +2,8 @@ name: ur10
 mode: inference
 seed: 4077
 
+controller: movel  # possible values: movel, joints
+
 train:
   num_epochs: 100
   dataset_path: "./data/ur10/ur10.zarr"
