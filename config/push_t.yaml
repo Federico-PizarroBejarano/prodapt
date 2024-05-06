@@ -2,6 +2,9 @@ name: push_t
 mode: inference
 seed: 4077
 
+action_dict: ['ee_pose']  # possible values: ee_pose
+obs_dict: ['state']  # possible values: state, img, keypoint, n_contacts
+
 train:
   num_epochs: 100
   dataset_path: "./data/push_t_data.zarr"
@@ -13,10 +16,6 @@ inference:
 
 parameters:
   num_diffusion_iters: 100
-
-  # Dimensions
-  obs_dim: 5
-  action_dim: 2
 
   # Diffusion horizons
   pred_horizon: 16

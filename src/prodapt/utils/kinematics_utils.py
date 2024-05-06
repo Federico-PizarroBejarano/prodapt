@@ -142,7 +142,7 @@ def forward_kinematics(joint_pos):
 
     T_06 = A_1 * A_2 * A_3 * A_4 * A_5 * A_6
 
-    return T_06
+    return np.array(T_06)
 
 
 def choose_best_ik(IK, curr_joint_pos):

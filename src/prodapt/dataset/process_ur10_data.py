@@ -4,137 +4,179 @@ import pandas as pd
 import zarr
 
 from prodapt.dataset.bag_file_parser import BagFileParser
+from prodapt.utils.kinematics_utils import forward_kinematics
+from prodapt.utils.rotation_utils import (
+    matrix_to_rotation_6d,
+    axis_angle_to_rotation_6d,
+)
+
+ordered_link_names = [
+    "shoulder_pan_joint",
+    "shoulder_lift_joint",
+    "elbow_joint",
+    "wrist_1_joint",
+    "wrist_2_joint",
+    "wrist_3_joint",
+]
+
+action_keys = ["position", "rotation_6d"]
+obs_keys = ["joint_pos", "joint_vel", "joint_eff", "ee_position", "ee_rotation_6d"]
 
 
 def process_trajectory(traj_name):
-    bag_file = f"/home/eels/prodapt/data/ur10/{traj_name}/{traj_name}_0.db3"
+    bag_file = (
+        f"/home/eels/prodapt/data/ur10/trajectories/{traj_name}/{traj_name}_0.db3"
+    )
     parser = BagFileParser(bag_file)
 
-    data_js = parser.get_messages("/joint_states")
-    data_ur = parser.get_messages("/urscript_interface/script_command")
-    df_js = build_dataframe(data_js, mode="joint_states")
-    df_ur = build_dataframe(data_ur, mode="urscript")
+    data_joints = parser.get_messages("/joint_states")
+    data_urscript = parser.get_messages("/urscript_interface/script_command")
 
-    df = pd.merge_asof(df_ur, df_js, on="timestamp", direction="nearest")
+    df_joints = build_dataframe(data_joints, mode="joint_states")
+    df_urscript = build_dataframe(data_urscript, mode="urscript")
+
+    # TODO: Find a better solution for merging two multi-column Dataframes
+    df_joints.columns = ["__".join(a) for a in df_joints.columns.to_flat_index()]
+    df_urscript.columns = ["__".join(a) for a in df_urscript.columns.to_flat_index()]
+
+    df = pd.merge_asof(
+        df_urscript, df_joints, on="timestamp__timestamp", direction="nearest"
+    )
+
+    df.columns = pd.MultiIndex.from_tuples([a.split("__") for a in df.columns])
 
     return df
 
 
 def build_dataframe(data, mode):
     if mode == "urscript":
+        all_data = {
+            "timestamp": [],
+            "position": [],
+            "rotation_6d": [],
+        }
         for i in range(len(data)):
             message = data[i][1].data
             commands = message.split("movel(p[")[1].split("]")[0]
             commands = [float(cmd) for cmd in commands.split(", ")]
-            datum = [data[i][0]] + commands
-            data[i] = datum
-        df = pd.DataFrame(
-            data,
-            columns=["timestamp", "x", "y", "z", "rx", "ry", "rz"],
-            dtype=np.float64,
+            all_data["timestamp"].append(data[i][0])
+            all_data["position"].append(commands[:3])
+            all_data["rotation_6d"].append(axis_angle_to_rotation_6d(commands[3:]))
+
+        df = {}
+        df["timestamp"] = pd.DataFrame(
+            all_data["timestamp"],
+            columns=["timestamp"],
         )
+        df["position"] = pd.DataFrame(
+            all_data["position"],
+            columns=["x", "y", "z"],
+        )
+        df["rotation_6d"] = pd.DataFrame(
+            all_data["rotation_6d"],
+            columns=["a1", "a2", "a3", "b1", "b2", "b3"],
+        )
+
+        df = pd.concat(df, axis=1).astype(np.float64)
     elif mode == "joint_states":
-        ordered_link_names = [
-            "shoulder_pan_joint",
-            "shoulder_lift_joint",
-            "elbow_joint",
-            "wrist_1_joint",
-            "wrist_2_joint",
-            "wrist_3_joint",
-        ]
+        all_data = {
+            "timestamp": [],
+            "joint_pos": [],
+            "joint_vel": [],
+            "joint_eff": [],
+            "ee_position": [],
+            "ee_rotation_6d": [],
+        }
         for i in range(len(data)):
             message = data[i][1]
             link_names = message.name
             reorder = [link_names.index(name) for name in ordered_link_names]
-            positions = list(np.array(message.position)[reorder])
-            velocities = list(np.array(message.velocity)[reorder])
-            efforts = list(np.array(message.effort)[reorder])
-            datum = [data[i][0]] + positions + velocities + efforts
-            data[i] = datum
-        df = pd.DataFrame(
-            data,
-            columns=[
-                "timestamp",
-                "x1",
-                "x2",
-                "x3",
-                "x4",
-                "x5",
-                "x6",
-                "v1",
-                "v2",
-                "v3",
-                "v4",
-                "v5",
-                "v6",
-                "e1",
-                "e2",
-                "e3",
-                "e4",
-                "e5",
-                "e6",
-            ],
-            dtype=np.float64,
+            all_data["timestamp"].append(data[i][0])
+            all_data["joint_pos"].append(np.array(message.position)[reorder])
+            all_data["joint_vel"].append(np.array(message.velocity)[reorder])
+            all_data["joint_eff"].append(np.array(message.effort)[reorder])
+            T_matrix = forward_kinematics(
+                np.array(message.position)[reorder].reshape(6, 1)
+            )
+            translation = T_matrix[:3, 3].squeeze()
+            rotation_6d = matrix_to_rotation_6d(T_matrix[:3, :3]).squeeze()
+            all_data["ee_position"].append(translation)
+            all_data["ee_rotation_6d"].append(rotation_6d)
+
+        df = {}
+        df["timestamp"] = pd.DataFrame(
+            all_data["timestamp"],
+            columns=["timestamp"],
         )
+        df["joint_pos"] = pd.DataFrame(
+            all_data["joint_pos"],
+            columns=["x1", "x2", "x3", "x4", "x5", "x6"],
+        )
+        df["joint_vel"] = pd.DataFrame(
+            all_data["joint_vel"],
+            columns=["v1", "v2", "v3", "v4", "v5", "v6"],
+        )
+        df["joint_eff"] = pd.DataFrame(
+            all_data["joint_eff"],
+            columns=["e1", "e2", "e3", "e4", "e5", "e6"],
+        )
+        df["ee_position"] = pd.DataFrame(
+            all_data["ee_position"],
+            columns=["x", "y", "z"],
+        )
+        df["ee_rotation_6d"] = pd.DataFrame(
+            all_data["ee_rotation_6d"],
+            columns=["a1", "a2", "a3", "b1", "b2", "b3"],
+        )
+
+        df = pd.concat(df, axis=1).astype(np.float64)
 
     return df
 
 
 def build_dataset():
     path = "/home/eels/prodapt/data/ur10/"
+    traj_path = path + "trajectories/"
 
     shutil.rmtree(path + "ur10.zarr", ignore_errors=True)
     f = zarr.group(path + "ur10.zarr")
     dataset = f.create_group("data")
+
+    actions = dataset.create_group("action")
+    actions_groups = {}
+    obs = dataset.create_group("obs")
+    obs_groups = {}
     dataset_started = False
 
-    meta = f.create_group("meta")
     episode_ends = []
 
-    directories = [
-        d for d in os.listdir(path) if os.path.isdir(path + d) and "traj" in d
-    ]
+    directories = [d for d in os.listdir(traj_path)]
     for traj_name in directories:
         df = process_trajectory(traj_name)
 
-        ep_actions = df[["x", "y", "z", "rx", "ry", "rz"]].astype(np.float32).to_numpy()
-        ep_states = (
-            df[
-                [
-                    "x1",
-                    "x2",
-                    "x3",
-                    "x4",
-                    "x5",
-                    "x6",
-                    "v1",
-                    "v2",
-                    "v3",
-                    "v4",
-                    "v5",
-                    "v6",
-                    "e1",
-                    "e2",
-                    "e3",
-                    "e4",
-                    "e5",
-                    "e6",
-                ]
-            ]
-            .astype(np.float32)
-            .to_numpy()
-        )
-
         if not dataset_started:
-            actions = dataset.create_dataset("action", data=ep_actions)
-            states = dataset.create_dataset("state", data=ep_states)
-            episode_ends.append(len(ep_actions))
+            for key in action_keys:
+                actions_groups[key] = actions.create_dataset(
+                    key, data=df[key].astype(np.float32).to_numpy()
+                )
+
+            for key in obs_keys:
+                obs_groups[key] = obs.create_dataset(
+                    key, data=df[key].astype(np.float32).to_numpy()
+                )
+
+            episode_ends.append(len(df[key]))
             dataset_started = True
         else:
-            actions.append(ep_actions)
-            states.append(ep_states)
-            episode_ends.append(episode_ends[-1] + len(ep_actions))
+            for key in action_keys:
+                actions_groups[key].append(df[key].astype(np.float32).to_numpy())
 
+            for key in obs_keys:
+                obs_groups[key].append(df[key].astype(np.float32).to_numpy())
+
+            episode_ends.append(episode_ends[-1] + len(df[key]))
+
+    meta = f.create_group("meta")
     meta.create_dataset("episode_ends", data=episode_ends)
 
 

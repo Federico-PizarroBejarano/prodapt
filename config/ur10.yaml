@@ -3,6 +3,8 @@ mode: inference
 seed: 4077
 
 controller: movel  # possible values: movel, joints
+action_dict: ['position', 'rotation_6d']  # possible values: position, rotation_6d
+obs_dict: ['joint_pos', 'joint_vel']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d
 
 train:
   num_epochs: 100
@@ -15,10 +17,6 @@ inference:
 
 parameters:
   num_diffusion_iters: 100
-
-  # Dimensions
-  obs_dim: 18
-  action_dim: 6
 
   # Diffusion horizons
   pred_horizon: 16

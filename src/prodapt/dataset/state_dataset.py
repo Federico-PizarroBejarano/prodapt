@@ -1,6 +1,8 @@
 import torch
 import zarr
 
+import numpy as np
+
 from prodapt.dataset.dataset_utils import (
     create_sample_indices,
     get_data_stats,
@@ -23,14 +25,31 @@ from prodapt.dataset.dataset_utils import (
 
 
 class StateDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset_path, pred_horizon, obs_horizon, action_horizon):
+    def __init__(
+        self,
+        dataset_path,
+        action_dict,
+        obs_dict,
+        pred_horizon,
+        obs_horizon,
+        action_horizon,
+    ):
         # Read from zarr dataset
         dataset_root = zarr.open(dataset_path, "r")
+
         # All demonstration episodes are concatenated in the first dimension N
+        actions = np.hstack(
+            [dataset_root["data"]["action"][key][:] for key in action_dict]
+        )
+        self.action_dim = actions.shape[1]
+        obs = np.hstack([dataset_root["data"]["obs"][key][:] for key in obs_dict])
+        self.obs_dim = obs.shape[1]
+
         train_data = {
-            "action": dataset_root["data"]["action"][:],  # (N, action_dim)
-            "obs": dataset_root["data"]["state"][:],  # (N, obs_dim)
+            "action": actions,  # (N, action_dim)
+            "obs": obs,  # (N, obs_dim)
         }
+
         # Marks one-past the last index for each episode
         episode_ends = dataset_root["meta"]["episode_ends"][:]
         print("meta data: ", dataset_root.tree())
@@ -86,10 +105,14 @@ class StateDataset(torch.utils.data.Dataset):
         return nsample
 
 
-def create_state_dataloader(dataset_path, pred_horizon, obs_horizon, action_horizon):
+def create_state_dataloader(
+    dataset_path, action_dict, obs_dict, pred_horizon, obs_horizon, action_horizon
+):
     # Create dataset from file
     dataset = StateDataset(
         dataset_path=dataset_path,
+        action_dict=action_dict,
+        obs_dict=obs_dict,
         pred_horizon=pred_horizon,
         obs_horizon=obs_horizon,
         action_horizon=action_horizon,
@@ -108,7 +131,7 @@ def create_state_dataloader(dataset_path, pred_horizon, obs_horizon, action_hori
         # Don't kill worker process afte each epoch
         persistent_workers=True,
     )
-    return dataloader, stats
+    return dataloader, stats, dataset.action_dim, dataset.obs_dim
 
 
 if __name__ == "__main__":
