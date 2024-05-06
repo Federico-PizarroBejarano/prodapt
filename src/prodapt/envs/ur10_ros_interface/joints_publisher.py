@@ -5,15 +5,16 @@ from rclpy.time import Duration
 
 from std_msgs.msg import Header
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from tf_transformations import quaternion_about_axis
-
-import numpy as np
 
 from prodapt.utils.kinematics_utils import (
     inverse_kinematics,
     choose_best_ik,
 )
-from prodapt.utils.rotation_utils import get_T_matrix
+from prodapt.utils.rotation_utils import (
+    get_T_matrix,
+    matrix_to_quaternion,
+    rotation_6d_to_matrix,
+)
 
 
 class JointsPublisher(Node):
@@ -32,16 +33,11 @@ class JointsPublisher(Node):
             "wrist_3_joint",
         ]
 
-    def send_action(self, action, duration, last_state):
-        angle = np.linalg.norm(action[3:])
-        if angle != 0:
-            axis = action[3:] / angle
-        else:
-            axis = np.zeros((3))
-        quat = quaternion_about_axis(angle, axis)
+    def send_action(self, action, duration, last_joint_pos):
+        quat = matrix_to_quaternion(rotation_6d_to_matrix(action[3:]))
         transformation_matrix = get_T_matrix(action[:3], quat)
         IK = inverse_kinematics(transformation_matrix)
-        best_IK = choose_best_ik(IK, last_state)
+        best_IK = choose_best_ik(IK, last_joint_pos)
 
         joint_command = JointTrajectory()
         joint_command.header = Header()

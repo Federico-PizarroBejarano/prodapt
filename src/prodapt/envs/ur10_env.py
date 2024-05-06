@@ -10,9 +10,9 @@ from prodapt.envs.ur10_ros_interface.joints_publisher import JointsPublisher
 
 
 class UR10Env(gym.Env):
-    def __init__(self, controller):
+    def __init__(self, controller, obs_dict):
         rclpy.init()
-        self.joint_state_subscriber = JointStatesSubscriber()
+        self.joint_state_subscriber = JointStatesSubscriber(obs_dict)
 
         if controller == "movel":
             self.command_publisher = MovelPublisher()
@@ -31,9 +31,9 @@ class UR10Env(gym.Env):
 
     def reset(self):
         self.command_publisher.send_action(
-            action=[0.6, 0, 0.4, 3.14, 0, 0],
+            action=[0.6, 0, 0.4, 1, 0, 0, 0, -1, 0],
             duration=10,
-            last_state=self.reset_joint_pos,
+            last_joint_pos=self.reset_joint_pos,
         )
         obs = self._get_latest_observation()
         return obs, {}
@@ -42,7 +42,7 @@ class UR10Env(gym.Env):
         if self.last_joint_pos is None:
             self._get_latest_observation()
         self.command_publisher.send_action(
-            action=action, duration=0.1, last_state=self.last_joint_pos
+            action=action, duration=0.1, last_joint_pos=self.last_joint_pos
         )
         obs = self._get_latest_observation()
         return obs, 0, False, False, {}
@@ -51,11 +51,9 @@ class UR10Env(gym.Env):
         pass
 
     def _get_latest_observation(self):
-        self.joint_state_subscriber.last_seen_state = None
-        while self.joint_state_subscriber.last_seen_state is None:
+        self.joint_state_subscriber.last_obs = None
+        while self.joint_state_subscriber.last_obs is None:
             rclpy.spin_once(self.joint_state_subscriber)
-        [pos, vel, eff] = self.joint_state_subscriber.last_seen_state
-
-        obs = np.concatenate((pos, vel, eff))
-        self.last_joint_pos = pos
+        obs = self.joint_state_subscriber.last_obs
+        self.last_joint_pos = self.joint_state_subscriber.last_joint_pos
         return obs

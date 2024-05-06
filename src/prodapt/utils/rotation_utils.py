@@ -1,20 +1,21 @@
 import numpy as np
-from tf_transformations import quaternion_matrix
-from tf_transformations import quaternion_from_matrix
+from tf_transformations import quaternion_matrix, quaternion_from_matrix
 
 
 def get_T_matrix(translation, quaternion):
     translation = np.squeeze(translation)
-    T_mat = quaternion_to_matrix(quaternion)
+    T_mat = quaternion_matrix(quaternion)
     T_mat[0:3, 3] = translation
     return T_mat
 
 
 def bound_angles(list_of_angles):
+    list_of_angles = np.array(list_of_angles)
     return (list_of_angles + np.pi) % (2 * np.pi) - np.pi
 
 
 def axis_angle_to_quaternion(axis_angle):
+    axis_angle = np.array(axis_angle)
     angle = np.linalg.norm(axis_angle)
     w = np.cos(angle * 0.5)
     s = (1 - w**2) ** 0.5
@@ -27,6 +28,7 @@ def axis_angle_to_quaternion(axis_angle):
 
 
 def quaternion_to_axis_angle(quaternion):
+    quaternion = np.array(quaternion)
     x, y, z, w = quaternion
     angle = np.arccos(w) * 2
     s = (1 - w**2) ** 0.5
@@ -36,8 +38,9 @@ def quaternion_to_axis_angle(quaternion):
         return np.array([x * angle / s, y * angle / s, z * angle / s])
 
 
-def rotation_6d_to_matrix(d6):
-    a1, a2 = d6[:3], d6[3:]
+def rotation_6d_to_matrix(rotation_6d):
+    rotation_6d = np.array(rotation_6d)
+    a1, a2 = rotation_6d[:3], rotation_6d[3:]
     b1 = normalize(a1)
     b2 = a2 - np.dot(b1, a2) * b1
     b2 = normalize(b2)
@@ -67,12 +70,22 @@ def axis_angle_to_matrix(axis_angle):
     return quaternion_to_matrix(axis_angle_to_quaternion(axis_angle))[:3, :3]
 
 
-def normalize(input):
-    magnitude = np.linalg.norm(input)
-    return input / magnitude
+def rotation_6d_to_axis_angle(rotation_6d):
+    return matrix_to_axis_angle(rotation_6d_to_matrix(rotation_6d))
+
+
+def axis_angle_to_rotation_6d(axis_angle):
+    return matrix_to_rotation_6d(axis_angle_to_matrix(axis_angle))
+
+
+def normalize(vector):
+    vector = np.array(vector)
+    magnitude = np.linalg.norm(vector)
+    return vector / magnitude
 
 
 def normalize_axis_angle(axis_angle):
+    axis_angle = np.array(axis_angle)
     angle = np.linalg.norm(axis_angle)
     if angle == 0:
         return axis_angle

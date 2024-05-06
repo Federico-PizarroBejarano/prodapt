@@ -41,7 +41,7 @@ class ConverterToJoints(Node):
         self.spacenav_to_delta_const = 0.2
 
         self.last_command = None
-        self.last_state = None
+        self.last_joint_pos = None
         self.timer_period = 0.1
         self.timer = self.create_timer(self.timer_period, self.timer_callback)
 
@@ -55,7 +55,7 @@ class ConverterToJoints(Node):
         ]
 
     def timer_callback(self):
-        if self.last_command is not None and self.last_state is not None:
+        if self.last_command is not None and self.last_joint_pos is not None:
             linear, angular = self.last_command
 
             t = self.tf_buffer.lookup_transform(
@@ -89,7 +89,7 @@ class ConverterToJoints(Node):
             ]
             transformation_matrix = get_T_matrix(translation, quat_new_normalized)
             IK = inverse_kinematics(transformation_matrix)
-            best_IK = choose_best_ik(IK, self.last_state)
+            best_IK = choose_best_ik(IK, self.last_joint_pos)
 
             joint_command = JointTrajectory()
             joint_command.header = Header()
@@ -112,7 +112,7 @@ class ConverterToJoints(Node):
         link_names = joint_state_msg.name
         reorder = [link_names.index(name) for name in self.ordered_link_names]
         pos = np.array(joint_state_msg.position)[reorder]
-        self.last_state = bound_angles(pos)
+        self.last_joint_pos = bound_angles(pos)
 
 
 def main(args=None):

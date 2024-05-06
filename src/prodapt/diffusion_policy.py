@@ -86,18 +86,18 @@ class DiffusionPolicy:
                     for nbatch in tepoch:
                         # data normalized in dataset
                         # device transfer
-                        nobs = nbatch["obs"].to(device)
-                        naction = nbatch["action"].to(device)
-                        B = nobs.shape[0]
+                        norm_obs = nbatch["obs"].to(device)
+                        norm_action = nbatch["action"].to(device)
+                        B = norm_obs.shape[0]
 
                         # observation as FiLM conditioning
                         # (B, obs_horizon, obs_dim)
-                        obs_cond = nobs[:, : self.obs_horizon, :]
+                        obs_cond = norm_obs[:, : self.obs_horizon, :]
                         # (B, obs_horizon * obs_dim)
                         obs_cond = obs_cond.flatten(start_dim=1)
 
                         # sample noise to add to actions
-                        noise = torch.randn(naction.shape, device=device)
+                        noise = torch.randn(norm_action.shape, device=device)
 
                         # sample a diffusion iteration for each data point
                         timesteps = torch.randint(
@@ -110,7 +110,7 @@ class DiffusionPolicy:
                         # add noise to the clean images according to the noise magnitude at each diffusion iteration
                         # (this is the forward diffusion process)
                         noisy_actions = self.noise_scheduler.add_noise(
-                            naction, noise, timesteps
+                            norm_action, noise, timesteps
                         )
 
                         # predict the noise residual
@@ -163,20 +163,22 @@ class DiffusionPolicy:
                 # stack the last obs_horizon (2) number of observations
                 obs_seq = np.stack(obs_deque)
                 # normalize observation
-                nobs = normalize_data(obs_seq, stats=self.training_data_stats["obs"])
+                norm_obs = normalize_data(
+                    obs_seq, stats=self.training_data_stats["obs"]
+                )
                 # device transfer
-                nobs = torch.from_numpy(nobs).to(device, dtype=torch.float32)
+                norm_obs = torch.from_numpy(norm_obs).to(device, dtype=torch.float32)
 
                 # infer action
                 with torch.no_grad():
                     # reshape observation to (B,obs_horizon*obs_dim)
-                    obs_cond = nobs.unsqueeze(0).flatten(start_dim=1)
+                    obs_cond = norm_obs.unsqueeze(0).flatten(start_dim=1)
 
                     # initialize action from Guassian noise
                     noisy_action = torch.randn(
                         (B, self.pred_horizon, self.action_dim), device=device
                     )
-                    naction = noisy_action
+                    norm_action = noisy_action
 
                     # init scheduler
                     self.noise_scheduler.set_timesteps(self.num_diffusion_iters)
@@ -184,20 +186,20 @@ class DiffusionPolicy:
                     for k in self.noise_scheduler.timesteps:
                         # predict noise
                         noise_pred = self.diffusion_network(
-                            sample=naction, timestep=k, global_cond=obs_cond
+                            sample=norm_action, timestep=k, global_cond=obs_cond
                         )
 
                         # inverse diffusion step (remove noise)
-                        naction = self.noise_scheduler.step(
-                            model_output=noise_pred, timestep=k, sample=naction
+                        norm_action = self.noise_scheduler.step(
+                            model_output=noise_pred, timestep=k, sample=norm_action
                         ).prev_sample
 
                 # unnormalize action
-                naction = naction.detach().to("cpu").numpy()
+                norm_action = norm_action.detach().to("cpu").numpy()
                 # (B, pred_horizon, action_dim)
-                naction = naction[0]
+                norm_action = norm_action[0]
                 action_pred = unnormalize_data(
-                    naction, stats=self.training_data_stats["action"]
+                    norm_action, stats=self.training_data_stats["action"]
                 )
 
                 # only take action_horizon number of actions

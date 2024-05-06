@@ -11,8 +11,10 @@ from prodapt.envs.ur10_env import UR10Env
 @hydra.main(version_base=None, config_path="../../config")
 def main_app(cfg: DictConfig) -> None:
     # Create dataloader
-    dataloader, stats = create_state_dataloader(
+    dataloader, stats, action_dim, obs_dim = create_state_dataloader(
         dataset_path=cfg.train.dataset_path,
+        action_dict=cfg.action_dict,
+        obs_dict=cfg.obs_dict,
         pred_horizon=cfg.parameters.pred_horizon,
         obs_horizon=cfg.parameters.obs_horizon,
         action_horizon=cfg.parameters.action_horizon,
@@ -21,14 +23,14 @@ def main_app(cfg: DictConfig) -> None:
     if cfg.name == "push_t":
         env = PushTEnv()
     elif cfg.name == "ur10":
-        env = UR10Env(controller=cfg.controller)
+        env = UR10Env(controller=cfg.controller, obs_dict=cfg.obs_dict)
     else:
         raise NotImplementedError(f"Unknown environment type ({cfg.name}).")
 
     diffusion_policy = DiffusionPolicy(
         env=env,
-        obs_dim=cfg.parameters.obs_dim,
-        action_dim=cfg.parameters.action_dim,
+        obs_dim=obs_dim,
+        action_dim=action_dim,
         obs_horizon=cfg.parameters.obs_horizon,
         pred_horizon=cfg.parameters.pred_horizon,
         action_horizon=cfg.parameters.action_horizon,
