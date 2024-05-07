@@ -38,8 +38,6 @@ When externally controlling the robot (simulated or real), it is usually necessa
     ros2 topic pub --once /urscript_interface/script_command std_msgs/msg/String '{data:
     "def my_prog():
 
-    set_digital_out(1, True)
-
     movej(p[0.6, 0, 0.4, 3.14, 0, 0], a=1.2, v=0.25, r=0)
 
     end"}'
