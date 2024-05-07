@@ -1,21 +1,22 @@
+"""Network
+
+Defines a 1D UNet architecture `ConditionalUnet1D`
+as the noise prediction network
+
+Components
+- `SinusoidalPosEmb` Positional encoding for the diffusion iteration k
+- `Downsample1d` Strided convolution to reduce temporal resolution
+- `Upsample1d` Transposed convolution to increase temporal resolution
+- `Conv1dBlock` Conv1d --> GroupNorm --> Mish
+- `ConditionalResidualBlock1D` Takes two inputs `x` and `cond`. \
+`x` is passed through 2 `Conv1dBlock` stacked together with residual connection.
+`cond` is applied to `x` with [FiLM](https://arxiv.org/abs/1709.07871) conditioning.
+"""
+
 import math
 import torch
 import torch.nn as nn
 from typing import Union
-
-# **Network**
-#
-# Defines a 1D UNet architecture `ConditionalUnet1D`
-# as the noies prediction network
-#
-# Components
-# - `SinusoidalPosEmb` Positional encoding for the diffusion iteration k
-# - `Downsample1d` Strided convolution to reduce temporal resolution
-# - `Upsample1d` Transposed convolution to increase temporal resolution
-# - `Conv1dBlock` Conv1d --> GroupNorm --> Mish
-# - `ConditionalResidualBlock1D` Takes two inputs `x` and `cond`. \
-# `x` is passed through 2 `Conv1dBlock` stacked together with residual connection.
-# `cond` is applied to `x` with [FiLM](https://arxiv.org/abs/1709.07871) conditioning.
 
 
 class SinusoidalPosEmb(nn.Module):
