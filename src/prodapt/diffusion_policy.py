@@ -1,3 +1,4 @@
+import os
 import collections
 import numpy as np
 import torch
@@ -6,9 +7,9 @@ from diffusers.training_utils import EMAModel
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusers.optimization import get_scheduler
 from tqdm.auto import tqdm
-import os
-from skvideo.io import vwrite
 import hydra
+from IPython.display import Video
+from skvideo.io import vwrite
 
 from prodapt.dataset.dataset_utils import normalize_data, unnormalize_data
 from prodapt.diffusion.conditional_unet_1d import ConditionalUnet1D
@@ -144,6 +145,7 @@ class DiffusionPolicy:
     def inference(self, max_steps, render=False):
         env = self.env
         env.seed(self.seed)
+        output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
         # get first observation
         obs, _ = env.reset()
@@ -157,10 +159,13 @@ class DiffusionPolicy:
         done = False
         step_idx = 0
 
+        all_actions = []
+        all_obs = [obs_deque[0]]
+
         with tqdm(total=max_steps, desc="Evaluation") as pbar:
             while not done:
                 B = 1
-                # stack the last obs_horizon (2) number of observations
+                # stack the last obs_horizon number of observations
                 obs_seq = np.stack(obs_deque)
                 # normalize observation
                 norm_obs = normalize_data(
@@ -213,6 +218,9 @@ class DiffusionPolicy:
                 for i in range(len(action)):
                     # stepping env
                     obs, reward, done, _, info = env.step(action[i])
+                    all_actions.append(action[i])
+                    all_obs.append(obs)
+
                     # save observations
                     obs_deque.append(obs)
                     # and reward
@@ -233,10 +241,10 @@ class DiffusionPolicy:
         # print out the maximum target coverage
         print("Score: ", max(rewards))
 
-        if render:
-            from IPython.display import Video
+        np.save(f"{output_dir}/all_actions.npy", all_actions)
+        np.save(f"{output_dir}/all_obs.npy", all_obs)
 
-            output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+        if render:
             vwrite(f"{output_dir}/vis.mp4", imgs)
             Video(f"{output_dir}/vis.mp4", embed=True, width=256, height=256)
 

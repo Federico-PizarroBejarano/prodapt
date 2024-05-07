@@ -62,8 +62,6 @@ class ConverterToMovel(Node):
             urscript_msg.data = """
 def my_prog():
 
-    set_digital_out(1, True)
-
     movel(p[{0}, {1}, {2}, {3}, {4}, {5}], a=1.2, v=0.25, r=0)
 
 end""".format(
