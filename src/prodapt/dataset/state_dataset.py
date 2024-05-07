@@ -1,3 +1,17 @@
+"""StateDataset class
+
+Defines generic StateDataset class
+
+The StateDataset class
+- Loads data (obs, action) from a zarr storage
+- Normalizes each dimension of obs and action to [-1,1]
+- Returns
+  - All possible segments with length `pred_horizon`
+  - Pads the beginning and the end of each episode with repetition
+  - key `obs`: shape (obs_horizon, obs_dim)
+  - key `action`: shape (pred_horizon, action_dim)
+"""
+
 import torch
 import zarr
 
@@ -9,19 +23,6 @@ from prodapt.dataset.dataset_utils import (
     sample_sequence,
     normalize_data,
 )
-
-### StateDataset class
-#
-# Defines generic StateDataset class
-#
-# The StateDataset class
-# - Loads data (obs, action) from a zarr storage
-# - Normalizes each dimension of obs and action to [-1,1]
-# - Returns
-#   - All possible segments with length `pred_horizon`
-#   - Pads the beginning and the end of each episode with repetition
-#   - key `obs`: shape (obs_horizon, obs_dim)
-#   - key `action`: shape (pred_horizon, action_dim)
 
 
 class StateDataset(torch.utils.data.Dataset):

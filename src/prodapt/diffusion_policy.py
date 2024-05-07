@@ -210,8 +210,7 @@ class DiffusionPolicy:
                 # only take action_horizon number of actions
                 start = self.obs_horizon - 1
                 end = start + self.action_horizon
-                action = action_pred[start:end, :]
-                # (action_horizon, action_dim)
+                action = action_pred[start:end, :]  # (action_horizon, action_dim)
 
                 # execute action_horizon number of steps
                 # without replanning

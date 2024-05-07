@@ -26,7 +26,8 @@ packages = ["src/prodapt"]
 
 requires-python = "~=3.8"
 authors = [
-  {name = "Bryson Jones", email = "bryson.jones@jpl.nasa.gov"}
+  {name = "Bryson Jones", email = "bryson.jones@jpl.nasa.gov"},
+  {name = "Federico Pizarro Bejarano", email = "bejarano@jpl.nasa.gov"}
 ]
 maintainers = [
   {name = "Federico Pizarro Bejarano", email = "bejarano@jpl.nasa.gov"}
@@ -39,4 +40,3 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python"
 ]
-
