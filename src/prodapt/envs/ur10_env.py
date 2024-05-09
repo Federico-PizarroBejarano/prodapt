@@ -10,14 +10,14 @@ from prodapt.envs.ur10_ros_interface.joints_publisher import JointsPublisher
 
 
 class UR10Env(gym.Env):
-    def __init__(self, controller, obs_dict):
+    def __init__(self, controller, obs_dict, simulator):
         rclpy.init()
         self.joint_state_subscriber = JointStatesSubscriber(obs_dict)
 
         if controller == "movel":
             self.command_publisher = MovelPublisher()
         elif controller == "joints":
-            self.command_publisher = JointsPublisher()
+            self.command_publisher = JointsPublisher(simulator=simulator)
 
         self.last_joint_pos = None
         self.reset_joint_pos = np.array(

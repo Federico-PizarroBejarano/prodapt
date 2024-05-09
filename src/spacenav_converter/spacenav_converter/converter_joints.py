@@ -24,9 +24,20 @@ class ConverterToJoints(Node):
     def __init__(self):
         super().__init__("converter_to_joints")
 
-        self.publisher = self.create_publisher(
-            JointTrajectory, "/scaled_joint_trajectory_controller/joint_trajectory", 10
+        self.declare_parameter(name="simulator", value="ursim")
+        self.simulator = (
+            self.get_parameter("simulator").get_parameter_value().string_value
         )
+
+        if self.simulator == "ursim":
+            self.publisher = self.create_publisher(
+                JointTrajectory,
+                "/scaled_joint_trajectory_controller/joint_trajectory",
+                10,
+            )
+        if self.simulator == "isaacsim":
+            self.publisher = self.create_publisher(JointState, "/joint_command", 10)
+
         self.spacenav_subscription = self.create_subscription(
             Twist, "/spacenav/twist", self.spacenav_listener_callback, 10
         )
@@ -72,7 +83,8 @@ class ConverterToJoints(Node):
             # Integrating angular velocities according to quaternion equation: q_new = q_curr + dt/2*w*q_curr
             quat_angular_vel = quaternion_from_euler(angular.x, angular.y, angular.z)
             angular_vel_delta = [
-                self.timer_period * rot / 2 for rot in quat_angular_vel
+                self.timer_period * 0.25 * rot / 2
+                for rot in quat_angular_vel  # 0.25 multiplier added to act more like moveL
             ]
             quat_delta = quaternion_multiply(angular_vel_delta, quat_curr)
             quat_new = [sum(i) for i in zip(quat_curr, quat_delta)]
@@ -91,14 +103,22 @@ class ConverterToJoints(Node):
             IK = inverse_kinematics(transformation_matrix)
             best_IK = choose_best_ik(IK, self.last_joint_pos)
 
-            joint_command = JointTrajectory()
-            joint_command.header = Header()
-            joint_command.header.stamp = self.get_clock().now().to_msg()
-            joint_command.header.frame_id = ""
-            joint_command.joint_names = self.ordered_link_names
-            joint_command.points = [JointTrajectoryPoint()]
-            joint_command.points[0].positions = [float(elem) for elem in best_IK]
-            joint_command.points[0].time_from_start = Duration(seconds=0.1).to_msg()
+            header = Header()
+            header.stamp = self.get_clock().now().to_msg()
+            header.frame_id = ""
+
+            if self.simulator == "ursim":
+                joint_command = JointTrajectory()
+                joint_command.header = header
+                joint_command.joint_names = self.ordered_link_names
+                joint_command.points = [JointTrajectoryPoint()]
+                joint_command.points[0].positions = [float(elem) for elem in best_IK]
+                joint_command.points[0].time_from_start = Duration(seconds=0.1).to_msg()
+            elif self.simulator == "isaacsim":
+                joint_command = JointState()
+                joint_command.header = header
+                joint_command.name = self.ordered_link_names
+                joint_command.position = [float(elem) for elem in best_IK]
 
             self.publisher.publish(joint_command)
 

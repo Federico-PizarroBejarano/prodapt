@@ -1,6 +1,6 @@
-## Using Docker
+## URSim
 
-There are two Docker containers described in `prodapt/docker`, one for the URSim Simulator and one for the ROS2 Humble driver for Universal Robots ([ur-driver](../docker/ur-driver/Dockerfile)). This Docker setup is inspired by https://github.com/maffettone/erobs/.
+URSim is the dedicated simulator of Universal Robots, which accurately simulates not only robot dynamics but the interface and drivers used to control their robots. This allows one to very accurately determine if software and algorithms will work as expected on the real robot by first testing in URSim. To run URSim, there are two Docker containers in `prodapt/docker`, one for the URSim Simulator and one for the ROS2 Humble driver for Universal Robots ([ur-driver](../docker/ur-driver/Dockerfile)).
 
 
 ### Running the Docker Containers

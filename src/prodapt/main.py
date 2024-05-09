@@ -23,7 +23,11 @@ def main_app(cfg: DictConfig) -> None:
     if cfg.name == "push_t":
         env = PushTEnv()
     elif cfg.name == "ur10":
-        env = UR10Env(controller=cfg.controller, obs_dict=cfg.obs_dict)
+        env = UR10Env(
+            controller=cfg.controller,
+            obs_dict=cfg.obs_dict,
+            simulator=cfg.inference.simulator,
+        )
     else:
         raise NotImplementedError(f"Unknown environment type ({cfg.name}).")
 
