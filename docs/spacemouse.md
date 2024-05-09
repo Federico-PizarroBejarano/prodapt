@@ -3,19 +3,27 @@
 It is possible to control robots using a 3D mouse such as the 3DConnexion SpaceMouse. This allows for controlling the end-effector's position and orientation with one hand.
 
 To accomplish this, the `spacenav` ROS package is used (https://index.ros.org/p/spacenav/) which converts the signal from the 3Dconnexion SpaceMouse into various ROS2 messages, including `/spacenav/twist (geometry_msgs/msg/Twist)`. The custom ROS2 package `spacenav_converter` is used to listen to the `/spacenav/twist` topic. This twist is turned into a desired pose offset, and used to calculate the next desired pose. The desired pose is then sent as a command to the UR10 via (currently) two possible interfaces:
-- MoveL commands (a linear move command used by the Universal Robots scripting language, URScript) which is sent to the robot (real or simulated) via the `/urscript_interface/script_command` topic.
-- Joint positions, calculated using the inverse kinematics in [kinematics_utils.py](../src/spacenav_converter/spacenav_to_movel/kinematics_utils.py), sent to the robot via the `/scaled_joint_trajectory_controller/joint_trajectory` topic.
+- MoveL commands (a linear move command used by the Universal Robots scripting language, URScript) which is sent to the robot (real or simulated via URSim) via the `/urscript_interface/script_command` topic.
+- Joint positions, calculated using the inverse kinematics in [kinematics_utils.py](../src/spacenav_converter/spacenav_to_movel/kinematics_utils.py), sent to the robot via the `/scaled_joint_trajectory_controller/joint_trajectory` topic (if using URsim or the real robot) or the `/joint_command` topic (if simulating the robot in Isaac Sim).
 
 
-
-### Steps
-1. Turn on the UR robot and run the `ur-robot-driver`. Make sure the robot is externally controllable, such as by following the steps in [docker.md](./docker.md).
-2. Ensure you have the SpaceMouse and `tf-transformations` packages installed:
+### Installation
+1. Ensure you have the SpaceMouse and `tf-transformations` packages installed:
     ```bash
     sudo apt-get install spacenavd
     sudo apt-get install ros-foxy-spacenav
     sudo apt-get install ros-foxy-tf-transformations
     ```
+2. Build the `spacenav_converter` package (only needed to be done once, and after any code change) by running
+    ```bash
+    cd ~/prodapt
+    rosdep install -i --from-path src --rosdistro foxy -y
+    colcon build --packages-select spacenav_converter
+    ```
+
+### Steps
+1. (If using URSim) Turn on the UR robot (or URSim) and run the `ur-robot-driver`. Make sure the robot is externally controllable, such as by following the steps in [ursim.md](./ursim.md).
+2. (If using Isaac Sim) Start Isaac Sim as detailed in [isaacsim.md](./isaacsim.md). Press play.
 3. Plug in the SpaceMouse
 4. Run the `spacenav` node by running:
     ```bash
@@ -26,17 +34,15 @@ To accomplish this, the `spacenav` ROS package is used (https://index.ros.org/p/
     ros2 topic echo /spacenav/twist
     ```
     You should see the topic being published to rapidly, and it should react to manipulating the SpaceMouse.
-5. Build the `spacenav_converter` package (only needed to be done once, and after any code change) by running
-    ```bash
-    cd ~/prodapt
-    rosdep install -i --from-path src --rosdistro foxy -y
-    colcon build --packages-select spacenav_converter
-    ```
-6. Run the `spacenav_converter` package by running
+5. Run the `spacenav_converter` package by running
     ```bash
     cd ~/prodapt
     source install/setup.bash
+
+    # If using URSim
     ros2 run spacenav_converter converter_movel  # or 'converter_joints' to control via joint positions
+    # If using Isaac Sim
+    ros2 run spacenav_converter converter_joints --ros-args -p simulator:=isaacsim
     ```
     Now you should be able to control the robot with the SpaceMouse by moving the SpaceMouse in the desired direction and orientation (i.e., not touching the SpaceMouse should cause the robot to stay still).
 
@@ -55,7 +61,7 @@ and view the PDF with
 xdg-open frames.pdf
 ```
 ---
-If the robot is not moving when using the joint commands, confirm that the `/scaled_joint_trajectory_controller/joint_trajectory` has a subscriber by running
+If the robot is not moving when using the joint commands on URSim, confirm that the `/scaled_joint_trajectory_controller/joint_trajectory` has a subscriber by running
 ```bash
 ros2 topic info /scaled_joint_trajectory_controller/joint_trajectory
 ```

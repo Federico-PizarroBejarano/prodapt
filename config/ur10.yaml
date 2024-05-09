@@ -14,6 +14,7 @@ inference:
   max_steps: 225
   render: False
   checkpoint_path: "./checkpoints/diffusion_policy.pt"
+  simulator: ursim  # possible values: ursim, isaacsim
 
 parameters:
   num_diffusion_iters: 10

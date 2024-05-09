@@ -1,8 +1,8 @@
 ## UR10 Data Collection
 
 ### Simulation
-To collect data for the UR10 in simulation, follow this procedure:
-1. Setup the URSim as detailed in [docker.md](./docker.md). Go to the **Move** tab in the URSim and change the Feature to **Base**. This makes visualization easier.
+To collect data for the UR10 in the URSim simulator, follow this procedure:
+1. Setup the URSim as detailed in [ursim.md](./ursim.md). Go to the **Move** tab in the URSim and change the Feature to **Base**. This makes visualization easier.
 2. Setup the `spacenav_converter` as detailed in [spacemouse.md](./spacemouse.md).
    1. Confirm that you can control the UR10 using the SpaceMouse.
    2. Kill the terminal running the `spacenav_converter`.
@@ -28,7 +28,3 @@ To collect data for the UR10 in simulation, follow this procedure:
    1. When the trajectory is complete, kill the ROS bag recording node.
    2. Kill the `spacenav_converter` node.
 7. Repeat steps 3-6 for additional trajectories.
-
-
-### Real
-TODO
