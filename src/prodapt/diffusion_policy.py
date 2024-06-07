@@ -259,7 +259,7 @@ class DiffusionPolicy:
         if not os.path.isfile(input_path):
             raise FileNotFoundError(f"File {input_path} not found.")
 
-        state_dict = torch.load(input_path, map_location="cuda")
+        state_dict = torch.load(input_path, map_location=device)
         self.diffusion_network.load_state_dict(state_dict)
         print("Pretrained weights loaded.")
 

@@ -22,10 +22,12 @@ ordered_link_names = [
 action_keys = ["position", "rotation_6d"]
 obs_keys = ["joint_pos", "joint_vel", "joint_eff", "ee_position", "ee_rotation_6d"]
 
+cwd = os.getcwd()
+
 
 def process_trajectory(traj_name):
     bag_file = (
-        f"/home/eels/prodapt/data/ur10/trajectories/{traj_name}/{traj_name}_0.db3"
+        f"{cwd}/data/ur10/trajectories/{traj_name}/{traj_name}_0.db3"
     )
     parser = BagFileParser(bag_file)
 
@@ -135,7 +137,7 @@ def build_dataframe(data, mode):
 
 
 def build_dataset():
-    path = "/home/eels/prodapt/data/ur10/"
+    path = f"{cwd}/data/ur10/"
     traj_path = path + "trajectories/"
 
     shutil.rmtree(path + "ur10.zarr", ignore_errors=True)
