@@ -6,10 +6,15 @@ URSim is the dedicated simulator of Universal Robots, which accurately simulates
 ### Running the Docker Containers
 1. Build the two images.
     ```bash
-    cd docker
-    docker pull universalrobots/ursim_e-series
+    cd ~/prodapt/docker
+    docker build -t ursim:latest ./ursim
     docker build -t ur-driver:latest ./ur-driver
     ```
+    **Note:** the `ur-driver` docker container is a light-weight version of the `prodapt` container, and so if you already are using the `prodapt` container you do not need to start the `ur-driver` container. Simply open a shell in your container and run the command
+    ```bash
+    ros2 launch ur_robot_driver ur_control.launch.py ur_type:=${UR_TYPE} robot_ip:=${ROBOT_IP} launch_rviz:=false
+    ```
+    in the place of step #3.
 2. Start URSim. Run
     ```bash
     docker compose up ursim

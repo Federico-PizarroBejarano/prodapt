@@ -19,6 +19,19 @@ services:
     depends_on:
       - ursim
 
+  prodapt:
+    image: prodapt:latest
+    stdin_open: true
+    tty: true
+    environment:
+      - ROBOT_IP=192.168.56.101
+    networks:
+      ursim_net:
+        ipv4_address: 192.168.56.102
+    volumes:
+    - /home/${USER}/prodapt:/root/prodapt
+    - /var/run/spnav.sock:/var/run/spnav.sock
+
 networks:
   ursim_net:
     ipam:

@@ -1,6 +1,6 @@
 ## Controlling the UR10e with a 3D Mouse
 
-It is possible to control robots using a 3D mouse such as the 3DConnexion SpaceMouse. This allows for controlling the end-effector's position and orientation with one hand.
+It is possible to control robots using a 3D mouse such as the 3DConnexion SpaceMouse. This allows for controlling the end-effector's position and orientation with one hand. The following steps can be run natively or on the Docker container.
 
 To accomplish this, the `spacenav` ROS package is used (https://index.ros.org/p/spacenav/) which converts the signal from the 3Dconnexion SpaceMouse into various ROS2 messages, including `/spacenav/twist (geometry_msgs/msg/Twist)`. The custom ROS2 package `spacenav_converter` is used to listen to the `/spacenav/twist` topic. This twist is turned into a desired pose offset, and used to calculate the next desired pose. The desired pose is then sent as a command to the UR10 via (currently) two possible interfaces:
 - MoveL commands (a linear move command used by the Universal Robots scripting language, URScript) which is sent to the robot (real or simulated via URSim) via the `/urscript_interface/script_command` topic.
@@ -8,16 +8,16 @@ To accomplish this, the `spacenav` ROS package is used (https://index.ros.org/p/
 
 
 ### Installation
-1. Ensure you have the SpaceMouse and `tf-transformations` packages installed:
+1. Ensure you have the SpaceMouse and `tf-transformations` packages installed (already done in the Docker container):
     ```bash
     sudo apt-get install spacenavd
-    sudo apt-get install ros-foxy-spacenav
-    sudo apt-get install ros-foxy-tf-transformations
+    sudo apt-get install ros-${ROS_DISTRO}-spacenav
+    sudo apt-get install ros-${ROS_DISTRO}-tf-transformations
     ```
 2. Build the `spacenav_converter` package (only needed to be done once, and after any code change) by running
     ```bash
     cd ~/prodapt
-    rosdep install -i --from-path src --rosdistro foxy -y
+    rosdep install -i --from-path src --rosdistro ${ROS_DISTRO} -y
     colcon build --packages-select spacenav_converter
     ```
 
@@ -60,9 +60,22 @@ and view the PDF with
 ```bash
 xdg-open frames.pdf
 ```
+
 ---
+
 If the robot is not moving when using the joint commands on URSim, confirm that the `/scaled_joint_trajectory_controller/joint_trajectory` has a subscriber by running
 ```bash
 ros2 topic info /scaled_joint_trajectory_controller/joint_trajectory
 ```
 If there are no subscribers, kill the URSim and ur-driver docker containers and restart them until the topic appears in `ros2 topic list` and has a subscriber.
+
+---
+
+If running `ros2 run spacenav spacenav_node` is resulting in an error or `ros2 topic echo /spacenav/twist` is always returning 0 for every value, check the following:
+1. Ensure the Spacemouse is connected
+2. Ensure that the host computer has installed the `spacenav` packages by running:
+    ```bash
+    sudo apt-get install spacenavd
+    service spacenavd restart
+    ```
+3. Ensure that the socket is properly formatted by running `ls -l /var/run/ | grep 'spnav.sock'`. If nothing shows up, something is wrong and the socket is not being created. If the socket appears, ensure the first section reads `srwxrwxrwx`, and does not start with a `d` (for directory). If it does, delete it and rerun the previous step and ensure a proper socket is created.
