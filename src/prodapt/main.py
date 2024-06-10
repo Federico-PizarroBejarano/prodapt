@@ -44,7 +44,11 @@ def main_app(cfg: DictConfig) -> None:
     )
 
     if cfg.mode == "train":
-        diffusion_policy.train(num_epochs=cfg.train.num_epochs, dataloader=dataloader)
+        diffusion_policy.train(
+            num_epochs=cfg.train.num_epochs,
+            dataloader=dataloader,
+            checkpoint_path=cfg.inference.checkpoint_path,
+        )
     elif cfg.mode == "inference":
         diffusion_policy.load(input_path=cfg.inference.checkpoint_path)
         diffusion_policy.inference(

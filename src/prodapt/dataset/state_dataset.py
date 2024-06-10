@@ -145,8 +145,11 @@ if __name__ == "__main__":
     # | |a|a|a|a|a|a|a|a|                actions executed: 8
     # |p|p|p|p|p|p|p|p|p|p|p|p|p|p|p|p|  actions predicted: 16
 
-    dataloader, stats = create_state_dataloader(
-        dataset_path, pred_horizon, obs_horizon, action_horizon
+    action_dict = ["ee_pose"]  # possible values: ee_pose
+    obs_dict = ["state"]  # possible values: state, img, keypoint, n_contacts
+
+    dataloader, stats, action_dim, obs_dim = create_state_dataloader(
+        dataset_path, action_dict, obs_dict, pred_horizon, obs_horizon, action_horizon
     )
 
     # Visualize data in batch

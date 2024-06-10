@@ -6,7 +6,7 @@ def generate_cubes(world, num_cubes):
     existing_cubes = []
 
     while num_cubes > 0:
-        x, y = -np.random.rand() * 0.6 - 0.5, (np.random.rand() - 0.5) * 0.9
+        x, y = -np.random.rand() * 0.5 - 0.5, (np.random.rand() - 0.5) * 0.6
 
         failed = False
         for cube_pos in existing_cubes:
@@ -20,15 +20,15 @@ def generate_cubes(world, num_cubes):
 
     for cube_pos in existing_cubes:
         z_angle = np.random.rand()
-        idx = int(np.random.rand() * 100000)
+        idx = int(np.random.rand() * 10000000)
         cube = DynamicCuboid(
             prim_path=f"/World/Cube{idx}",
             name=f"Cube{idx}",
-            position=[cube_pos[0], cube_pos[1], 0],
+            position=[cube_pos[0], cube_pos[1], 0.075],
             size=0.15,
-            mass=2.0,
+            mass=20000.0,
             visible=True,
-            orientation=[0, 0, z_angle, (1.0 - z_angle**2) ** 0.5],
+            orientation=[z_angle, 0, 0, (1.0 - z_angle**2) ** 0.5],
         )
         cube.set_collision_enabled(True)
         world.scene.add(cube)
