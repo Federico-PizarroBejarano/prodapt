@@ -69,7 +69,7 @@ class DiffusionPolicy:
             params=self.diffusion_network.parameters(), lr=1e-4, weight_decay=1e-6
         )
 
-    def train(self, num_epochs, dataloader):
+    def train(self, num_epochs, dataloader, checkpoint_path):
         # Cosine LR schedule with linear warmup
         self.lr_scheduler = get_scheduler(
             name="cosine",
@@ -139,7 +139,7 @@ class DiffusionPolicy:
                         tepoch.set_postfix(loss=loss_cpu)
                     if epoch_idx % 5 == 0:
                         # save checkpoint every 5 epochs
-                        self.save("./checkpoints")
+                        self.save(checkpoint_path)
                 tglobal.set_postfix(loss=np.mean(epoch_loss))
 
     def inference(self, max_steps, render=False):
@@ -216,8 +216,9 @@ class DiffusionPolicy:
                 # without replanning
                 for i in range(len(action)):
                     # stepping env
-                    obs, reward, done, _, info = env.step(action[i])
-                    all_actions.append(action[i])
+                    next_action = self.post_process_action(action, all_actions, i)
+                    obs, reward, done, _, _ = env.step(next_action)
+                    all_actions.append(next_action)
                     all_obs.append(obs)
 
                     # save observations
@@ -248,12 +249,10 @@ class DiffusionPolicy:
             Video(f"{output_dir}/vis.mp4", embed=True, width=256, height=256)
 
     def save(self, output_path):
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-        torch.save(
-            self.diffusion_network.state_dict(),
-            os.path.join(output_path, "diffusion_policy.pt"),
-        )
+        folder_name = output_path[: output_path[::-1].index("/")]
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name)
+        torch.save(self.diffusion_network.state_dict(), output_path)
 
     def load(self, input_path):
         if not os.path.isfile(input_path):
@@ -269,3 +268,11 @@ class DiffusionPolicy:
         if torch.cuda.is_available():
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
+
+    def post_process_action(self, action, all_actions, iter):
+        if len(all_actions) == 0:
+            next_action = action[iter]
+        else:
+            next_action = 0.3 * all_actions[-1] + 0.7 * action[iter]
+
+        return next_action

@@ -74,32 +74,37 @@ class ConverterToJoints(Node):
             )
 
             quat_curr = [
-                t.transform.rotation.x,
-                t.transform.rotation.y,
-                t.transform.rotation.z,
-                t.transform.rotation.w,
+                # t.transform.rotation.x,
+                # t.transform.rotation.y,
+                # t.transform.rotation.z,
+                # t.transform.rotation.w,
+                1,
+                0,
+                0,
+                0,
             ]
 
             # Integrating angular velocities according to quaternion equation: q_new = q_curr + dt/2*w*q_curr
-            quat_angular_vel = quaternion_from_euler(angular.x, angular.y, angular.z)
-            angular_vel_delta = [
-                self.timer_period * 0.25 * rot / 2
-                for rot in quat_angular_vel  # 0.25 multiplier added to act more like moveL
-            ]
-            quat_delta = quaternion_multiply(angular_vel_delta, quat_curr)
-            quat_new = [sum(i) for i in zip(quat_curr, quat_delta)]
-            magnitude = sum([i**2 for i in quat_new]) ** 0.5
-            quat_new_normalized = [rot / magnitude for rot in quat_new]
+            # quat_angular_vel = quaternion_from_euler(angular.x, angular.y, angular.z)
+            # angular_vel_delta = [
+            #     self.timer_period * 0.25 * rot / 2
+            #     for rot in quat_angular_vel  # 0.25 multiplier added to act more like moveL
+            # ]
+            # quat_delta = quaternion_multiply(angular_vel_delta, quat_curr)
+            # quat_new = [sum(i) for i in zip(quat_curr, quat_delta)]
+            # magnitude = sum([i**2 for i in quat_new]) ** 0.5
+            # quat_new_normalized = [rot / magnitude for rot in quat_new]
 
             translation = [
                 t.transform.translation.x
                 - self.timer_period * self.spacenav_to_delta_const * linear.x,
                 t.transform.translation.y
                 - self.timer_period * self.spacenav_to_delta_const * linear.y,
-                t.transform.translation.z
-                + self.timer_period * self.spacenav_to_delta_const * linear.z,
+                0.1,
+                # t.transform.translation.z
+                # + self.timer_period * self.spacenav_to_delta_const * linear.z,
             ]
-            transformation_matrix = get_T_matrix(translation, quat_new_normalized)
+            transformation_matrix = get_T_matrix(translation, quat_curr)
             IK = inverse_kinematics(transformation_matrix)
             best_IK = choose_best_ik(IK, self.last_joint_pos)
 

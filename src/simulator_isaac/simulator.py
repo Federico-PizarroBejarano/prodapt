@@ -1,12 +1,20 @@
+import numpy as np
+
 import omni
 from omni.isaac.core import World
 import omni.graph.core as og
+from omni.isaac.core.utils.prims import get_prim_at_path, get_prim_children
+
+from simulator_isaac.cube_bypass import generate_cubes
+from simulator_isaac.force_publisher import ForcePublisher
 
 
 class Simulator:
     def __init__(self, simulation_app):
         self.simulation_app = simulation_app
         self.simulation_app.update()
+
+        self.force_publisher = ForcePublisher()
 
         self.world = World(stage_units_in_meters=1.0)
         physics_context = self.world.get_physics_context()
@@ -80,10 +88,6 @@ class Simulator:
                         "SubJointStates.outputs:jointNames",
                         "ArticulationController.inputs:jointNames",
                     ),
-                    (
-                        "SubJointStates.outputs:positionCommand",
-                        "ArticulationController.inputs:positionCommand",
-                    ),
                 ],
                 self.graph_keys.SET_VALUES: [
                     ("ArticulationController.inputs:robotPath", prim_path),
@@ -104,9 +108,73 @@ class Simulator:
         og.Controller.evaluate_sync(self.graph)
 
     def run(self):
-        self.robot.pos_reset()
+        stage = omni.usd.get_context().get_stage()
+        tool0_prim = get_prim_at_path("/World/UR10e/tool0")
+        world_prim = get_prim_at_path("/World")
+
         while self.simulation_app.is_running():
+            generate_cubes(self.world, 3)
             self.world.step(render=True)
+            self.robot.pos_reset()
+            startup_counter = 0
+            self.disconnect_controller()
+            matrix = omni.usd.get_world_transform_matrix(tool0_prim)
+            translate = matrix.ExtractTranslation()
+            detection = False
+
+            while np.linalg.norm(translate[:2] - np.array([-1.2, 0])) > 0.025:
+                startup_counter += 1
+                self.world.step(render=True)
+
+                measured_forces = self.robot.get_measured_joint_forces()
+                ee_force = measured_forces[-3, :]
+                self.force_publisher.publish_force(ee_force)
+
+                prev_detection = detection
+                detection = np.linalg.norm(ee_force[3:]) > 0.025
+                if detection:
+                    x_dir = "LEFT" if ee_force[1] > 0 else "RIGHT"
+                    y_dir = "UP" if ee_force[2] > 0 else "DOWN"
+                    print(f"{x_dir} ({int(ee_force[1])}), {y_dir} ({int(ee_force[2])})")
+                if prev_detection and not detection:
+                    print("-------")
+
+                matrix = omni.usd.get_world_transform_matrix(tool0_prim)
+                translate = matrix.ExtractTranslation()
+
+                if startup_counter == 10:
+                    self.connect_controller()
+                    print("Starting up control!!")
+
+            for prim in get_prim_children(world_prim):
+                if "Cube" in prim.GetName():
+                    stage.RemovePrim(f"/World/{prim.GetName()}")
 
         self.world.stop()
         self.simulation_app.close()
+
+    def disconnect_controller(self):
+        self.controller.edit(
+            self.graph,
+            {
+                self.graph_keys.DISCONNECT: [
+                    (
+                        "SubJointStates.outputs:positionCommand",
+                        "ArticulationController.inputs:positionCommand",
+                    )
+                ]
+            },
+        )
+
+    def connect_controller(self):
+        self.controller.edit(
+            self.graph,
+            {
+                self.graph_keys.CONNECT: [
+                    (
+                        "SubJointStates.outputs:positionCommand",
+                        "ArticulationController.inputs:positionCommand",
+                    )
+                ]
+            },
+        )

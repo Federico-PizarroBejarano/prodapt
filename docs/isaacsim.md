@@ -15,12 +15,13 @@ Isaac Sim is an Nvidia robotics simulator with very powerful GPU-acceleration, p
     ```
     ${ISAACSIM_PYTHON_EXE} ${ISAACSIM_PATH}/standalone_examples/api/omni.isaac.core/add_cubes.py
     ```
+4. To use `rclpy` from ROS2 Foxy it is necessary to setup the ROS2 Foxy Isaac Sim workspace as detailed here: https://github.com/isaac-sim/IsaacSim-ros_workspaces.
 
 
 ### Running Experiments:
 1. Make sure ROS2 is running.
 2. Go to `~/prodapt/src`.
-3. Execute `$ISAACSIM_PYTHON_EXE -m simulator_isaac.main`. This should open an instance of Isaac Sim with the UR10e arm.
+3. Execute `./scripts/run_experiment.sh`. This should open an instance of Isaac Sim with the UR10e arm.
 4. Follow the steps in [spacemouse.md](./spacemouse.md) to control the UR10e with the SpaceMouse.
 
 

@@ -67,7 +67,13 @@ def get_data_stats(data):
 
 def normalize_data(data, stats):
     # normalize to [0,1]
-    ndata = (data - stats["min"]) / (stats["max"] - stats["min"])
+    ndata = np.ones(data.shape, dtype=np.float32) * 0.5
+    for dim in range(data.shape[1]):
+        if stats["max"][dim] != stats["min"][dim]:
+            ndata[:, dim] = (data[:, dim] - stats["min"][dim]) / (
+                stats["max"][dim] - stats["min"][dim]
+            )
+
     # normalize to [-1, 1]
     ndata = ndata * 2 - 1
     return ndata

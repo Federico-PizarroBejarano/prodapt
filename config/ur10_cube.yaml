@@ -1,0 +1,25 @@
+name: ur10
+mode: inference
+seed: 4077
+
+controller: joints  # possible values: joints
+action_dict: ['commanded_ee_position']  # possible values: commanded_ee_position, commanded_ee_rotation_6d, commanded_joints
+obs_dict: ['ee_position', 'force', 'torque']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d, force, torque
+
+train:
+  num_epochs: 100
+  dataset_path: "./data/ur10/cube.zarr"
+
+inference:
+  max_steps: 500
+  render: False
+  checkpoint_path: "./checkpoints/cube_bypass.pt"
+  simulator: isaacsim  # possible values: isaacsim
+
+parameters:
+  num_diffusion_iters: 10
+
+  # Diffusion horizons
+  pred_horizon: 20
+  obs_horizon: 20
+  action_horizon: 3
