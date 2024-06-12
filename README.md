@@ -45,7 +45,7 @@ Download the trained weights for the push-T example by running
 ```
 which should create the folder `prodapt/checkpoints` and add the file `pusht_state_100ep.ckpt`. Then, run the experiment by running
 ```bash
-python3 -m prodapt.main --config-name=push_t.yaml mode=inference
+python3 -m prodapt.main --config-name=push_t.yaml mode=inference inference.checkpoint_path=./checkpoints/pusht_state_100ep.ckpt
 ```
 which should run an evaluation that has a final score of approximately 0.95. A video of the experiment can be found in the `prodapt/output` folder, in the latest experiment.
 
@@ -61,7 +61,7 @@ python3 -m prodapt.main --config-name=push_t.yaml mode=train
 ```
 This will begin training (100 epochs), which should take ~10min. Then, evaluate the policy by running
 ```bash
-python3 -m prodapt.main --config-name=push_t.yaml mode=inference inference.checkpoint_path=./checkpoints/diffusion_policy.pt
+python3 -m prodapt.main --config-name=push_t.yaml mode=inference
 ```
 which could return a score of approximately 0.95.
 

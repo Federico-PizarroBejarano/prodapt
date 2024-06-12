@@ -5,6 +5,9 @@ seed: 4077
 action_dict: ['ee_pose']  # possible values: ee_pose
 obs_dict: ['state']  # possible values: state, img, keypoint, n_contacts
 
+network:
+  use_transformer: False
+
 train:
   num_epochs: 100
   dataset_path: "./data/push_t_data.zarr"
@@ -12,7 +15,7 @@ train:
 inference:
   max_steps: 200
   render: True
-  checkpoint_path: "./checkpoints/pusht_state_100ep.ckpt"
+  checkpoint_path: "./checkpoints/push_t.pt"
 
 parameters:
   num_diffusion_iters: 100

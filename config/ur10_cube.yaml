@@ -6,6 +6,9 @@ controller: joints  # possible values: joints
 action_dict: ['commanded_ee_position']  # possible values: commanded_ee_position, commanded_ee_rotation_6d, commanded_joints
 obs_dict: ['ee_position', 'force', 'torque']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d, force, torque
 
+network:
+  use_transformer: False
+
 train:
   num_epochs: 100
   dataset_path: "./data/ur10/cube.zarr"

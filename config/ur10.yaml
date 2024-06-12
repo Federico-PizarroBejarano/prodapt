@@ -6,6 +6,9 @@ controller: movel  # possible values: movel, joints
 action_dict: ['position', 'rotation_6d']  # possible values: position, rotation_6d
 obs_dict: ['ee_position', 'ee_rotation_6d']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d
 
+network:
+  use_transformer: False
+
 train:
   num_epochs: 100
   dataset_path: "./data/ur10/ur10.zarr"
@@ -13,7 +16,7 @@ train:
 inference:
   max_steps: 225
   render: False
-  checkpoint_path: "./checkpoints/diffusion_policy.pt"
+  checkpoint_path: "./checkpoints/ur10.pt"
   simulator: ursim  # possible values: ursim, isaacsim
 
 parameters:
