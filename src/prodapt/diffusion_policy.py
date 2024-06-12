@@ -13,6 +13,7 @@ from skvideo.io import vwrite
 
 from prodapt.dataset.dataset_utils import normalize_data, unnormalize_data
 from prodapt.diffusion.conditional_unet_1d import ConditionalUnet1D
+from prodapt.diffusion.transformer_for_diffusion import TransformerForDiffusion
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -29,6 +30,7 @@ class DiffusionPolicy:
         training_data_stats,
         num_diffusion_iters,
         seed=4077,
+        use_transformer=False,
     ):
         self.env = env
         self.obs_dim = obs_dim
@@ -42,9 +44,23 @@ class DiffusionPolicy:
         self.seed = seed
         self.set_seed(self.seed)
 
-        self.diffusion_network = ConditionalUnet1D(
-            input_dim=action_dim, global_cond_dim=obs_dim * obs_horizon
-        ).to(device)
+        self.use_transformer = use_transformer
+
+        if not self.use_transformer:
+            self.diffusion_network = ConditionalUnet1D(
+                input_dim=action_dim, global_cond_dim=obs_dim * obs_horizon
+            ).to(device)
+        else:
+            self.diffusion_network = TransformerForDiffusion(
+                input_dim=action_dim,
+                output_dim=action_dim,
+                horizon=pred_horizon,
+                n_obs_steps=obs_horizon,
+                cond_dim=obs_dim,
+                causal_attn=True,
+                n_cond_layers=4,
+            ).to(device)
+
         self.noise_scheduler = DDPMScheduler(
             num_train_timesteps=num_diffusion_iters,
             # the choice of beta schedule has big impact on performance
@@ -95,7 +111,8 @@ class DiffusionPolicy:
                         # (B, obs_horizon, obs_dim)
                         obs_cond = norm_obs[:, : self.obs_horizon, :]
                         # (B, obs_horizon * obs_dim)
-                        obs_cond = obs_cond.flatten(start_dim=1)
+                        if not self.use_transformer:
+                            obs_cond = obs_cond.flatten(start_dim=1)
 
                         # sample noise to add to actions
                         noise = torch.randn(norm_action.shape, device=device)
@@ -177,7 +194,10 @@ class DiffusionPolicy:
                 # infer action
                 with torch.no_grad():
                     # reshape observation to (B,obs_horizon*obs_dim)
-                    obs_cond = norm_obs.unsqueeze(0).flatten(start_dim=1)
+                    obs_cond = norm_obs.unsqueeze(0)
+
+                    if not self.use_transformer:
+                        obs_cond = obs_cond.flatten(start_dim=1)
 
                     # initialize action from Guassian noise
                     noisy_action = torch.randn(
@@ -249,7 +269,7 @@ class DiffusionPolicy:
             Video(f"{output_dir}/vis.mp4", embed=True, width=256, height=256)
 
     def save(self, output_path):
-        folder_name = output_path[: output_path[::-1].index("/")]
+        folder_name = output_path[: -output_path[::-1].index("/")]
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
         torch.save(self.diffusion_network.state_dict(), output_path)

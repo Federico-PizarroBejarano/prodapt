@@ -41,6 +41,7 @@ def main_app(cfg: DictConfig) -> None:
         training_data_stats=stats,
         num_diffusion_iters=cfg.parameters.num_diffusion_iters,
         seed=cfg.seed,
+        use_transformer=cfg.network.use_transformer,
     )
 
     if cfg.mode == "train":
