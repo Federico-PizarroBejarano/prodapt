@@ -31,6 +31,7 @@ class DiffusionPolicy:
         num_diffusion_iters,
         seed=4077,
         use_transformer=False,
+        network_args=None,
     ):
         self.env = env
         self.obs_dim = obs_dim
@@ -48,7 +49,9 @@ class DiffusionPolicy:
 
         if not self.use_transformer:
             self.diffusion_network = ConditionalUnet1D(
-                input_dim=action_dim, global_cond_dim=obs_dim * obs_horizon
+                input_dim=action_dim,
+                global_cond_dim=obs_dim * obs_horizon,
+                **network_args,
             ).to(device)
         else:
             self.diffusion_network = TransformerForDiffusion(
@@ -56,9 +59,8 @@ class DiffusionPolicy:
                 output_dim=action_dim,
                 horizon=pred_horizon,
                 n_obs_steps=obs_horizon,
-                cond_dim=obs_dim,
-                causal_attn=True,
-                n_cond_layers=4,
+                cond_dim=obs_dim if network_args["obs_as_cond"] else 0,
+                **network_args,
             ).to(device)
 
         self.noise_scheduler = DDPMScheduler(
@@ -159,7 +161,7 @@ class DiffusionPolicy:
                         self.save(checkpoint_path)
                 tglobal.set_postfix(loss=np.mean(epoch_loss))
 
-    def inference(self, max_steps, render=False):
+    def inference(self, max_steps, render=False, warmstart=False):
         env = self.env
         env.seed(self.seed)
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
@@ -178,6 +180,9 @@ class DiffusionPolicy:
 
         all_actions = []
         all_obs = [obs_deque[0]]
+
+        prev_action_traj = None
+        colliding = False
 
         with tqdm(total=max_steps, desc="Evaluation") as pbar:
             while not done:
@@ -200,13 +205,31 @@ class DiffusionPolicy:
                         obs_cond = obs_cond.flatten(start_dim=1)
 
                     # initialize action from Guassian noise
-                    noisy_action = torch.randn(
+                    noise = torch.randn(
                         (B, self.pred_horizon, self.action_dim), device=device
                     )
+                    if not warmstart or prev_action_traj is None or colliding:
+                        noisy_action = noise
+                    else:
+                        noisy_action = torch.concatenate(
+                            (
+                                prev_action_traj[:, self.action_horizon :, :],
+                                noise[:, : self.action_horizon, :],
+                            ),
+                            axis=1,
+                        )
+                        noisy_action[self.action_horizon :] += (
+                            noise[self.action_horizon :] * 0.5
+                        )
                     norm_action = noisy_action
 
                     # init scheduler
-                    self.noise_scheduler.set_timesteps(self.num_diffusion_iters)
+                    if not warmstart or prev_action_traj is None or colliding:
+                        self.noise_scheduler.set_timesteps(self.num_diffusion_iters)
+                    else:
+                        self.noise_scheduler.set_timesteps(
+                            self.num_diffusion_iters // 2
+                        )
 
                     for k in self.noise_scheduler.timesteps:
                         # predict noise
@@ -218,6 +241,8 @@ class DiffusionPolicy:
                         norm_action = self.noise_scheduler.step(
                             model_output=noise_pred, timestep=k, sample=norm_action
                         ).prev_sample
+
+                    prev_action_traj = norm_action
 
                 # unnormalize action
                 norm_action = norm_action.detach().to("cpu").numpy()
@@ -237,9 +262,15 @@ class DiffusionPolicy:
                 for i in range(len(action)):
                     # stepping env
                     next_action = self.post_process_action(action, all_actions, i)
-                    obs, reward, done, _, _ = env.step(next_action)
+                    obs, reward, done, _, info = env.step(next_action)
                     all_actions.append(next_action)
                     all_obs.append(obs)
+
+                    if "kp_added" in info:
+                        if info["kp_added"] and not colliding:
+                            colliding = True
+                        else:
+                            colliding = False
 
                     # save observations
                     obs_deque.append(obs)
@@ -256,6 +287,8 @@ class DiffusionPolicy:
                     if step_idx > max_steps:
                         done = True
                     if done:
+                        break
+                    if colliding:
                         break
 
         # print out the maximum target coverage

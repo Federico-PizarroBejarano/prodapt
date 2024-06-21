@@ -5,6 +5,7 @@ import zarr
 
 import matplotlib.pyplot as plt
 
+from prodapt.utils.keypoint_manager import KeypointManager
 from prodapt.dataset.bag_file_parser import BagFileParser
 from prodapt.utils.kinematics_utils import forward_kinematics
 from prodapt.utils.rotation_utils import matrix_to_rotation_6d
@@ -21,6 +22,7 @@ ordered_link_names = [
 action_keys = [
     "commanded_joint_pos",
     "commanded_ee_position",
+    "commanded_ee_position_xy",
     "commanded_ee_rotation_6d",
 ]
 obs_keys = [
@@ -28,6 +30,7 @@ obs_keys = [
     "joint_vel",
     "joint_eff",
     "ee_position",
+    "ee_position_xy",
     "ee_rotation_6d",
     "force",
     "torque",
@@ -35,7 +38,7 @@ obs_keys = [
 
 
 def process_trajectory(plot=False):
-    bag_file = f"/home/eels/prodapt/data/ur10/cube/cube_0.db3"
+    bag_file = f"/home/eels/prodapt/data/ur10/{dataset_name}/{dataset_name}_0.db3"
     parser = BagFileParser(bag_file)
 
     data_joints = parser.get_messages("/joint_states")
@@ -98,6 +101,7 @@ def build_dataframe(data, mode):
             "joint_vel": [],
             "joint_eff": [],
             "ee_position": [],
+            "ee_position_xy": [],
             "ee_rotation_6d": [],
         }
         for i in range(len(data)):
@@ -114,6 +118,7 @@ def build_dataframe(data, mode):
             translation = T_matrix[:3, 3].squeeze()
             rotation_6d = matrix_to_rotation_6d(T_matrix[:3, :3]).squeeze()
             all_data["ee_position"].append(translation)
+            all_data["ee_position_xy"].append(translation[:2])
             all_data["ee_rotation_6d"].append(rotation_6d)
 
         df = {}
@@ -137,6 +142,10 @@ def build_dataframe(data, mode):
             all_data["ee_position"],
             columns=["x", "y", "z"],
         )
+        df["ee_position_xy"] = pd.DataFrame(
+            all_data["ee_position_xy"],
+            columns=["x", "y"],
+        )
         df["ee_rotation_6d"] = pd.DataFrame(
             all_data["ee_rotation_6d"],
             columns=["a1", "a2", "a3", "b1", "b2", "b3"],
@@ -148,6 +157,7 @@ def build_dataframe(data, mode):
             "timestamp": [],
             "commanded_joint_pos": [],
             "commanded_ee_position": [],
+            "commanded_ee_position_xy": [],
             "commanded_ee_rotation_6d": [],
         }
         for i in range(len(data)):
@@ -162,6 +172,7 @@ def build_dataframe(data, mode):
             translation = T_matrix[:3, 3].squeeze()
             rotation_6d = matrix_to_rotation_6d(T_matrix[:3, :3]).squeeze()
             all_data["commanded_ee_position"].append(translation)
+            all_data["commanded_ee_position_xy"].append(translation[:2])
             all_data["commanded_ee_rotation_6d"].append(rotation_6d)
 
         df = {}
@@ -176,6 +187,10 @@ def build_dataframe(data, mode):
         df["commanded_ee_position"] = pd.DataFrame(
             all_data["commanded_ee_position"],
             columns=["x", "y", "z"],
+        )
+        df["commanded_ee_position_xy"] = pd.DataFrame(
+            all_data["commanded_ee_position_xy"],
+            columns=["x", "y"],
         )
         df["commanded_ee_rotation_6d"] = pd.DataFrame(
             all_data["commanded_ee_rotation_6d"],
@@ -230,17 +245,18 @@ def build_dataframe(data, mode):
     return df
 
 
-def build_dataset():
+def build_dataset(keypoint_args):
     path = "/home/eels/prodapt/data/ur10/"
 
-    shutil.rmtree(path + "cube.zarr", ignore_errors=True)
-    f = zarr.group(path + "cube.zarr")
+    shutil.rmtree(path + f"{dataset_name}.zarr", ignore_errors=True)
+    f = zarr.group(path + f"{dataset_name}.zarr")
     dataset = f.create_group("data")
 
     actions = dataset.create_group("action")
     obs = dataset.create_group("obs")
 
     df, episode_ends = process_trajectory()
+    df = add_keypoints(df, episode_ends, keypoint_args)
 
     for key in action_keys:
         actions.create_dataset(key, data=df[key].astype(np.float32).to_numpy())
@@ -248,10 +264,51 @@ def build_dataset():
     for key in obs_keys:
         obs.create_dataset(key, data=df[key].astype(np.float32).to_numpy())
 
+    for kp in range(keypoint_args["num_keypoints"]):
+        obs.create_dataset(
+            f"keypoint{kp}", data=df[f"keypoint{kp}"].astype(np.float32).to_numpy()
+        )
+
     meta = f.create_group("meta")
     meta.create_dataset("episode_ends", data=episode_ends)
 
 
+def add_keypoints(df, episode_ends, keypoint_args):
+    kp_headers = [f"keypoint{i}" for i in range(keypoint_args["num_keypoints"])]
+    kp_subheaders = ["x", "y", "tx", "ty", "tz"]
+    midx = pd.MultiIndex.from_product([kp_headers, kp_subheaders])
+
+    keypoints_df = pd.DataFrame(index=range(df.shape[0]), columns=midx)
+    new_df = pd.concat([df, keypoints_df], axis=1)
+    new_df.loc[:, kp_headers] = 0.0
+
+    aug_episode_ends = [0] + episode_ends
+    keypoint_manager = KeypointManager(**keypoint_args)
+    for ee in range(1, len(aug_episode_ends)):
+        keypoint_manager.reset()
+
+        for idx in range(aug_episode_ends[ee - 1], aug_episode_ends[ee]):
+            position = list(new_df.loc[idx, "ee_position"])[:2]
+            force = list(new_df.loc[idx, "force"])
+            torque = list(new_df.loc[idx, "torque"])
+
+            keypoint_manager.add_keypoint(position, force + torque)
+            for kp in range(keypoint_args["num_keypoints"]):
+                new_df.loc[idx, f"keypoint{kp}"] = np.concatenate(
+                    (
+                        keypoint_manager.all_keypoints[kp][0],
+                        keypoint_manager.all_keypoints[kp][1][-3:],
+                    )
+                )
+
+    return new_df
+
+
 if __name__ == "__main__":
-    build_dataset()
-    # process_trajectory(plot=True)
+    dataset_name = "simple2"
+    keypoint_args = {
+        "num_keypoints": 5,
+        "min_dist": 0.0254,
+        "threshold_force": 1.0,
+    }
+    build_dataset(keypoint_args)

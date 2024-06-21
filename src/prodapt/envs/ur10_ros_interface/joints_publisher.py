@@ -19,10 +19,12 @@ from prodapt.utils.rotation_utils import (
 
 
 class JointsPublisher(Node):
-    def __init__(self, simulator):
+    def __init__(self, action_list, simulator, base_command):
         super().__init__("joints_publisher")
 
+        self.action_list = action_list
         self.simulator = simulator
+        self.base_command = base_command
 
         if self.simulator == "ursim":
             self.publisher = self.create_publisher(
@@ -43,8 +45,15 @@ class JointsPublisher(Node):
         ]
 
     def send_action(self, action, duration, last_joint_pos):
-        quat = matrix_to_quaternion(rotation_6d_to_matrix(action[3:]))
-        transformation_matrix = get_T_matrix(action[:3], quat)
+        applied_action = self.base_command.copy()
+        if "commanded_ee_position" in self.action_list:
+            applied_action[:3] = action[:3]
+        if "commanded_ee_position_xy" in self.action_list:
+            applied_action[:2] = action[:2]
+        if "commanded_ee_rotation_6d" in self.action_list:
+            applied_action[3:] = action[3:]
+        quat = matrix_to_quaternion(rotation_6d_to_matrix(applied_action[3:]))
+        transformation_matrix = get_T_matrix(applied_action[:3], quat)
         IK = inverse_kinematics(transformation_matrix)
         best_IK = choose_best_ik(IK, last_joint_pos)
 

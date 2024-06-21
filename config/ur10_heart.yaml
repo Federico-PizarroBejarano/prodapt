@@ -1,0 +1,33 @@
+name: ur10
+mode: inference
+seed: 4077
+
+controller: joints  # possible values: movel, joints
+action_list: ['commanded_ee_position', 'commanded_ee_rotation_6d']  # possible values: position, rotation_6d
+obs_list: ['ee_position', 'ee_rotation_6d']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d
+keypoints_in_obs: False
+
+use_transformer: False
+
+transformer_args: {}  # use defaults
+
+unet_args: {}  # use defaults
+
+train:
+  num_epochs: 100
+  dataset_path: "./data/ur10/ur10_heart.zarr"
+
+inference:
+  max_steps: 225
+  render: False
+  checkpoint_path: "./checkpoints/ur10_heart.pt"
+  simulator: isaacsim  # possible values: ursim, isaacsim
+  warmstart: True
+
+parameters:
+  num_diffusion_iters: 10
+
+  # Diffusion horizons
+  pred_horizon: 16
+  obs_horizon: 2
+  action_horizon: 3

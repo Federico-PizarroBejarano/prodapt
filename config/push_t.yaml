@@ -2,11 +2,29 @@ name: push_t
 mode: inference
 seed: 4077
 
-action_dict: ['ee_pose']  # possible values: ee_pose
-obs_dict: ['state']  # possible values: state, img, keypoint, n_contacts
+action_list: ['ee_pose']  # possible values: ee_pose
+obs_list: ['state']  # possible values: state, img, keypoint, n_contacts
+keypoints_in_obs: False
 
-network:
-  use_transformer: False
+use_transformer: False
+
+transformer_args:
+  n_layer: 8
+  n_head: 4
+  n_emb: 256
+  p_drop_emb: 0.0
+  p_drop_attn: 0.01
+
+  causal_attn: True
+  time_as_cond: True # if false, use BERT like encoder only arch, time as input
+  obs_as_cond: True
+  n_cond_layers: 0 # >0: use transformer encoder for cond, otherwise use MLP
+
+unet_args:
+  diffusion_step_embed_dim: 256
+  down_dims: [256, 512, 1024]
+  kernel_size: 5
+  n_groups: 8
 
 train:
   num_epochs: 100
@@ -16,6 +34,7 @@ inference:
   max_steps: 200
   render: True
   checkpoint_path: "./checkpoints/push_t.pt"
+  warmstart: False
 
 parameters:
   num_diffusion_iters: 100

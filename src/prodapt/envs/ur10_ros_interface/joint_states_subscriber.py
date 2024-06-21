@@ -7,9 +7,9 @@ from prodapt.utils.rotation_utils import matrix_to_rotation_6d
 
 
 class JointStatesSubscriber(Node):
-    def __init__(self, obs_dict):
+    def __init__(self, obs_list):
         super().__init__("joint_states_subscriber")
-        self.obs_dict = obs_dict
+        self.obs_list = obs_list
         self.subscription = self.create_subscription(
             JointState, "/joint_states", self.listener_callback, 10
         )
@@ -32,17 +32,21 @@ class JointStatesSubscriber(Node):
 
         joint_pos = np.array(msg.position)[reorder]
 
-        if "joint_pos" in self.obs_dict:
+        if "joint_pos" in self.obs_list:
             self.last_obs.append(joint_pos)
-        if "joint_vel" in self.obs_dict:
+        if "joint_vel" in self.obs_list:
             self.last_obs.append(np.array(msg.velocity)[reorder])
-        if "joint_eff" in self.obs_dict:
+        if "joint_eff" in self.obs_list:
             self.last_obs.append(np.array(msg.effort)[reorder])
-        if "ee_position" in self.obs_dict:
+        if "ee_position" in self.obs_list:
             T_matrix = forward_kinematics(joint_pos.reshape(6, 1))
             translation = T_matrix[:3, 3].squeeze()
             self.last_obs.append(translation)
-        if "ee_rotation_6d" in self.obs_dict:
+        if "ee_position_xy" in self.obs_list:
+            T_matrix = forward_kinematics(joint_pos.reshape(6, 1))
+            translation = T_matrix[:3, 3].squeeze()
+            self.last_obs.append(translation[:2])
+        if "ee_rotation_6d" in self.obs_list:
             T_matrix = forward_kinematics(joint_pos.reshape(6, 1))
             rotation_6d = matrix_to_rotation_6d(T_matrix[:3, :3]).squeeze()
             self.last_obs.append(rotation_6d)

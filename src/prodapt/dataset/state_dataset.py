@@ -29,8 +29,8 @@ class StateDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         dataset_path,
-        action_dict,
-        obs_dict,
+        action_list,
+        obs_list,
         pred_horizon,
         obs_horizon,
         action_horizon,
@@ -40,10 +40,10 @@ class StateDataset(torch.utils.data.Dataset):
 
         # All demonstration episodes are concatenated in the first dimension N
         actions = np.hstack(
-            [dataset_root["data"]["action"][key][:] for key in action_dict]
+            [dataset_root["data"]["action"][key][:] for key in action_list]
         )
         self.action_dim = actions.shape[1]
-        obs = np.hstack([dataset_root["data"]["obs"][key][:] for key in obs_dict])
+        obs = np.hstack([dataset_root["data"]["obs"][key][:] for key in obs_list])
         self.obs_dim = obs.shape[1]
 
         train_data = {
@@ -107,13 +107,13 @@ class StateDataset(torch.utils.data.Dataset):
 
 
 def create_state_dataloader(
-    dataset_path, action_dict, obs_dict, pred_horizon, obs_horizon, action_horizon
+    dataset_path, action_list, obs_list, pred_horizon, obs_horizon, action_horizon
 ):
     # Create dataset from file
     dataset = StateDataset(
         dataset_path=dataset_path,
-        action_dict=action_dict,
-        obs_dict=obs_dict,
+        action_list=action_list,
+        obs_list=obs_list,
         pred_horizon=pred_horizon,
         obs_horizon=obs_horizon,
         action_horizon=action_horizon,
@@ -145,11 +145,11 @@ if __name__ == "__main__":
     # | |a|a|a|a|a|a|a|a|                actions executed: 8
     # |p|p|p|p|p|p|p|p|p|p|p|p|p|p|p|p|  actions predicted: 16
 
-    action_dict = ["ee_pose"]  # possible values: ee_pose
-    obs_dict = ["state"]  # possible values: state, img, keypoint, n_contacts
+    action_list = ["ee_pose"]  # possible values: ee_pose
+    obs_list = ["state"]  # possible values: state, img, keypoint, n_contacts
 
     dataloader, stats, action_dim, obs_dim = create_state_dataloader(
-        dataset_path, action_dict, obs_dict, pred_horizon, obs_horizon, action_horizon
+        dataset_path, action_list, obs_list, pred_horizon, obs_horizon, action_horizon
     )
 
     # Visualize data in batch
