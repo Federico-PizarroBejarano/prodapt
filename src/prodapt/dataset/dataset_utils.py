@@ -15,8 +15,8 @@ def create_sample_indices(
         end_idx = episode_ends[i]
         episode_length = end_idx - start_idx
 
-        min_start = -pad_before
-        max_start = episode_length - sequence_length + pad_after
+        min_start = 0  # -pad_before
+        max_start = episode_length - sequence_length  # + pad_after
 
         # range stops one idx before end
         for idx in range(min_start, max_start + 1):

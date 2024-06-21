@@ -19,16 +19,14 @@ ordered_link_names = [
     "wrist_3_joint",
 ]
 
-action_keys = ["position", "rotation_6d"]
+action_keys = ["commanded_ee_position", "commanded_ee_rotation_6d"]
 obs_keys = ["joint_pos", "joint_vel", "joint_eff", "ee_position", "ee_rotation_6d"]
 
 cwd = os.getcwd()
 
 
 def process_trajectory(traj_name):
-    bag_file = (
-        f"{cwd}/data/ur10/trajectories/{traj_name}/{traj_name}_0.db3"
-    )
+    bag_file = f"{cwd}/data/ur10/trajectories/{traj_name}/{traj_name}_0.db3"
     parser = BagFileParser(bag_file)
 
     data_joints = parser.get_messages("/joint_states")
@@ -52,43 +50,36 @@ def process_trajectory(traj_name):
 
 def build_dataframe(data, mode):
     if mode == "urscript":
-        all_data = {
-            "timestamp": [],
-            "position": [],
-            "rotation_6d": [],
-        }
+        all_data = {key: [] for key in action_keys}
+        all_data["timestamp"] = []
         for i in range(len(data)):
             message = data[i][1].data
             commands = message.split("movel(p[")[1].split("]")[0]
             commands = [float(cmd) for cmd in commands.split(", ")]
             all_data["timestamp"].append(data[i][0])
-            all_data["position"].append(commands[:3])
-            all_data["rotation_6d"].append(axis_angle_to_rotation_6d(commands[3:]))
+            all_data["commanded_ee_position"].append(commands[:3])
+            all_data["commanded_ee_rotation_6d"].append(
+                axis_angle_to_rotation_6d(commands[3:])
+            )
 
         df = {}
         df["timestamp"] = pd.DataFrame(
             all_data["timestamp"],
             columns=["timestamp"],
         )
-        df["position"] = pd.DataFrame(
-            all_data["position"],
+        df["commanded_ee_position"] = pd.DataFrame(
+            all_data["commanded_ee_position"],
             columns=["x", "y", "z"],
         )
-        df["rotation_6d"] = pd.DataFrame(
-            all_data["rotation_6d"],
+        df["commanded_ee_rotation_6d"] = pd.DataFrame(
+            all_data["commanded_ee_rotation_6d"],
             columns=["a1", "a2", "a3", "b1", "b2", "b3"],
         )
 
         df = pd.concat(df, axis=1).astype(np.float64)
     elif mode == "joint_states":
-        all_data = {
-            "timestamp": [],
-            "joint_pos": [],
-            "joint_vel": [],
-            "joint_eff": [],
-            "ee_position": [],
-            "ee_rotation_6d": [],
-        }
+        all_data = {key: [] for key in obs_keys}
+        all_data["timestamp"] = []
         for i in range(len(data)):
             message = data[i][1]
             link_names = message.name
@@ -140,8 +131,8 @@ def build_dataset():
     path = f"{cwd}/data/ur10/"
     traj_path = path + "trajectories/"
 
-    shutil.rmtree(path + "ur10.zarr", ignore_errors=True)
-    f = zarr.group(path + "ur10.zarr")
+    shutil.rmtree(path + "ur10_heart.zarr", ignore_errors=True)
+    f = zarr.group(path + "ur10_heart.zarr")
     dataset = f.create_group("data")
 
     actions = dataset.create_group("action")
