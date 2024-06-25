@@ -17,6 +17,9 @@ class KeypointManager:
             if dist <= self.min_dist:
                 return False
 
+        print("-----")
+        print(np.round(position, 3))
+        print(np.round(force_torque, 2))
         self._queue_keypoint(position, force_torque)
         return True
 

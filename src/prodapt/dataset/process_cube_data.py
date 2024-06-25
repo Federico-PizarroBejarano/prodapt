@@ -305,9 +305,9 @@ def add_keypoints(df, episode_ends, keypoint_args):
 
 
 if __name__ == "__main__":
-    dataset_name = "simple2"
+    dataset_name = "cube"
     keypoint_args = {
-        "num_keypoints": 5,
+        "num_keypoints": 15,
         "min_dist": 0.0254,
         "threshold_force": 1.0,
     }

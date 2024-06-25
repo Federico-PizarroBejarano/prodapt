@@ -6,7 +6,7 @@ def generate_cubes(world, num_cubes):
     existing_cubes = []
 
     while num_cubes > 0:
-        x, y = -np.random.rand() * 0.5 - 0.5, (np.random.rand() - 0.5) * 0.6
+        x, y = -np.random.rand() * 0.45 - 0.55, (np.random.rand() - 0.5) * 0.6
 
         failed = False
         for cube_pos in existing_cubes:

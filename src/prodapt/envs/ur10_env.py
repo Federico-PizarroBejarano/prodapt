@@ -55,7 +55,7 @@ class UR10Env(gym.Env):
 
         self.command_publisher.send_action(
             action=self.base_command,
-            duration=10,
+            duration=3,
             last_joint_pos=self.reset_joint_pos,
         )
 
@@ -71,10 +71,14 @@ class UR10Env(gym.Env):
         )
         obs, info = self._get_latest_observation()
 
-        done = np.linalg.norm(obs[:2] - np.array([-1.2, 0])) < 0.025
-        reward = -1 if not done else 100
+        done = self._get_done(obs)
+        reward = -1 if not done else 1000
 
         return obs, reward, done, False, info
+
+    def _get_done(self, obs):
+        done = np.linalg.norm(obs[:2] - np.array([1.2, 0])) < 0.025
+        return done
 
     def seed(self, seed=None):
         pass

@@ -129,7 +129,7 @@ def build_dataframe(data, mode):
 
 def build_dataset():
     path = f"{cwd}/data/ur10/"
-    traj_path = path + "trajectories/"
+    traj_path = path + "heart_trajectories/"
 
     shutil.rmtree(path + "ur10_heart.zarr", ignore_errors=True)
     f = zarr.group(path + "ur10_heart.zarr")
