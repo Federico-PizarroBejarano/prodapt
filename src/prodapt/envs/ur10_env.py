@@ -35,7 +35,7 @@ class UR10Env(gym.Env):
 
         self.use_force_obs = False
         self.use_keypoint_obs = False
-        if "force" in obs_list or "torque" in obs_list:
+        if "force" in obs_list or "torque" in obs_list or "torque2" in obs_list:
             self.use_force_obs = True
         if np.any(["keypoint" in key for key in obs_list]):
             self.use_keypoint_obs = True
@@ -100,14 +100,15 @@ class UR10Env(gym.Env):
 
         if self.use_keypoint_obs:
             kp_added = self.keypoint_manager.add_keypoint(
-                self.joint_state_subscriber.last_obs, self.force_subscriber.last_obs
+                self.joint_state_subscriber.last_obs,
+                self.force_subscriber.last_full_msg,
             )
             for kp in range(self.keypoint_manager.num_keypoints):
                 obs = np.concatenate(
                     (
                         obs,
                         self.keypoint_manager.all_keypoints[kp][0],
-                        self.keypoint_manager.all_keypoints[kp][1][-3:],
+                        self.keypoint_manager.all_keypoints[kp][1],
                     )
                 )
 

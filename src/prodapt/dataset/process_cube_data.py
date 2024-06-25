@@ -34,6 +34,7 @@ obs_keys = [
     "ee_rotation_6d",
     "force",
     "torque",
+    "torque2",
 ]
 
 
@@ -203,6 +204,7 @@ def build_dataframe(data, mode):
             "timestamp": [],
             "force": [],
             "torque": [],
+            "torque2": [],
         }
         for i in range(len(data)):
             message = data[i][1]
@@ -225,6 +227,14 @@ def build_dataframe(data, mode):
                     ]
                 )
             )
+            all_data["torque2"].append(
+                np.array(
+                    [
+                        message.wrench.torque.y,
+                        message.wrench.torque.z,
+                    ]
+                )
+            )
 
         df = {}
         df["timestamp"] = pd.DataFrame(
@@ -238,6 +248,10 @@ def build_dataframe(data, mode):
         df["torque"] = pd.DataFrame(
             all_data["torque"],
             columns=["x", "y", "z"],
+        )
+        df["torque2"] = pd.DataFrame(
+            all_data["torque2"],
+            columns=["y", "z"],
         )
 
         df = pd.concat(df, axis=1).astype(np.float64)
@@ -275,7 +289,7 @@ def build_dataset(keypoint_args):
 
 def add_keypoints(df, episode_ends, keypoint_args):
     kp_headers = [f"keypoint{i}" for i in range(keypoint_args["num_keypoints"])]
-    kp_subheaders = ["x", "y", "tx", "ty", "tz"]
+    kp_subheaders = ["x", "y", "sin_yaw", "cos_yaw"]
     midx = pd.MultiIndex.from_product([kp_headers, kp_subheaders])
 
     keypoints_df = pd.DataFrame(index=range(df.shape[0]), columns=midx)
@@ -297,7 +311,7 @@ def add_keypoints(df, episode_ends, keypoint_args):
                 new_df.loc[idx, f"keypoint{kp}"] = np.concatenate(
                     (
                         keypoint_manager.all_keypoints[kp][0],
-                        keypoint_manager.all_keypoints[kp][1][-3:],
+                        keypoint_manager.all_keypoints[kp][1],
                     )
                 )
 

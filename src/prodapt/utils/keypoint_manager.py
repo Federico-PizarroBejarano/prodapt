@@ -17,15 +17,17 @@ class KeypointManager:
             if dist <= self.min_dist:
                 return False
 
-        print("-----")
-        print(np.round(position, 3))
-        print(np.round(force_torque, 2))
         self._queue_keypoint(position, force_torque)
         return True
 
     def _queue_keypoint(self, position, force_torque):
         self.all_keypoints[1:] = self.all_keypoints[:-1]
-        self.all_keypoints[0] = (position, force_torque)
+
+        angle = np.arctan2(force_torque[5], force_torque[4])
+        angle_2rep = (np.sin(angle), np.cos(angle))
+
+        self.all_keypoints[0] = (position, angle_2rep)
+        print(np.round(self.all_keypoints[0], 2))
 
     def _detect_contact(self, force_torque):
         torque = force_torque[-3:]
@@ -33,5 +35,5 @@ class KeypointManager:
 
     def reset(self):
         self.all_keypoints = [
-            (np.zeros((2)), np.zeros(6)) for i in range(self.num_keypoints)
+            (np.zeros((2)), np.zeros(2)) for i in range(self.num_keypoints)
         ]
