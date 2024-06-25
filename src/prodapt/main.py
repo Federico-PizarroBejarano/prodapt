@@ -1,5 +1,5 @@
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from prodapt.dataset.state_dataset import create_state_dataloader
 from prodapt.diffusion_policy import DiffusionPolicy
@@ -53,6 +53,7 @@ def main_app(cfg: DictConfig) -> None:
     )
 
     if cfg.mode == "train":
+        OmegaConf.save(cfg, cfg.inference.checkpoint_path.replace(".pt", ".yaml"))
         diffusion_policy.train(
             num_epochs=cfg.train.num_epochs,
             dataloader=dataloader,
@@ -60,7 +61,16 @@ def main_app(cfg: DictConfig) -> None:
         )
     elif cfg.mode == "inference":
         diffusion_policy.load(input_path=cfg.inference.checkpoint_path)
-        diffusion_policy.inference(
+        diffusion_policy.evaluate(
+            num_inferences=1,
+            max_steps=cfg.inference.max_steps,
+            render=cfg.inference.render,
+            warmstart=cfg.inference.warmstart,
+        )
+    elif cfg.mode == "evaluate":
+        diffusion_policy.load(input_path=cfg.inference.checkpoint_path)
+        diffusion_policy.evaluate(
+            num_inferences=cfg.inference.num_inferences,
             max_steps=cfg.inference.max_steps,
             render=cfg.inference.render,
             warmstart=cfg.inference.warmstart,

@@ -1,4 +1,6 @@
 import numpy as np
+import socket
+import select
 
 import omni
 from omni.isaac.core import World
@@ -109,8 +111,13 @@ class Simulator:
 
     def run(self):
         stage = omni.usd.get_context().get_stage()
-        tool0_prim = get_prim_at_path("/World/UR10e/tool0")
         world_prim = get_prim_at_path("/World")
+
+        # Socket to receive reset requests
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setblocking(0)
+        sock.bind((socket.gethostname(), 6000))
+        sock.listen(0)
 
         while self.simulation_app.is_running():
             generate_cubes(self.world, 3)
@@ -118,11 +125,9 @@ class Simulator:
             self.robot.pos_reset()
             startup_counter = 0
             self.disconnect_controller()
-            matrix = omni.usd.get_world_transform_matrix(tool0_prim)
-            translate = matrix.ExtractTranslation()
             detection = False
 
-            while np.linalg.norm(translate[:2] - np.array([-1.2, 0])) > 0.025:
+            while select.select([sock], [], [], 0)[0] == []:
                 startup_counter += 1
                 self.world.step(render=True)
 
@@ -139,12 +144,13 @@ class Simulator:
                 if prev_detection and not detection:
                     print("-------")
 
-                matrix = omni.usd.get_world_transform_matrix(tool0_prim)
-                translate = matrix.ExtractTranslation()
-
                 if startup_counter == 10:
                     self.connect_controller()
                     print("Starting up control!!")
+
+            con, _ = sock.accept()
+            msg = con.recv(1024).decode("UTF-8")
+            print(msg)
 
             for prim in get_prim_children(world_prim):
                 if "Cube" in prim.GetName():

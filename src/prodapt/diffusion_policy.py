@@ -1,15 +1,19 @@
-import os
 import collections
+import os
+import pickle
+import select
+import socket
+
+import hydra
 import numpy as np
 import torch
 import torch.nn as nn
-from diffusers.training_utils import EMAModel
-from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusers.optimization import get_scheduler
-from tqdm.auto import tqdm
-import hydra
+from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+from diffusers.training_utils import EMAModel
 from IPython.display import Video
 from skvideo.io import vwrite
+from tqdm.auto import tqdm
 
 from prodapt.dataset.dataset_utils import normalize_data, unnormalize_data
 from prodapt.diffusion.conditional_unet_1d import ConditionalUnet1D
@@ -161,10 +165,37 @@ class DiffusionPolicy:
                         self.save(checkpoint_path)
                 tglobal.set_postfix(loss=np.mean(epoch_loss))
 
-    def inference(self, max_steps, render=False, warmstart=False):
+    def evaluate(self, num_inferences, max_steps, render=False, warmstart=False):
+        total_results = {"rewards": [], "return": [], "done": []}
+        output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+
+        # Socket to send environment reset requests
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setblocking(0)
+        sock.connect_ex((socket.gethostname(), 6000))
+
+        select.select([], [sock], [])
+
+        for inf_id in range(num_inferences):
+            sock.send(bytes("Reset environment", "UTF-8"))
+            results = self.inference(max_steps, output_dir, inf_id, render, warmstart)
+            for key in total_results.keys():
+                total_results[key].append(results[key])
+
+        final_return = np.mean(total_results["return"])
+        final_done = np.mean(total_results["done"])
+
+        print(f"Mean Return: {final_return}")
+        print(f"Mean Done: {final_done}")
+
+        with open(f"{output_dir}/total_results.pkl", "wb") as handle:
+            pickle.dump(total_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def inference(
+        self, max_steps, output_dir, inference_id, render=False, warmstart=False
+    ):
         env = self.env
         env.seed(self.seed)
-        output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
         # get first observation
         obs, _ = env.reset()
@@ -292,14 +323,25 @@ class DiffusionPolicy:
                         break
 
         # print out the maximum target coverage
-        print("Score: ", max(rewards))
+        print("Score: ", sum(rewards))
 
-        np.save(f"{output_dir}/all_actions.npy", all_actions)
-        np.save(f"{output_dir}/all_obs.npy", all_obs)
+        results = {"rewards": rewards, "return": sum(rewards), "done": done}
+
+        os.makedirs(f"{output_dir}/{inference_id}")
+
+        np.save(f"{output_dir}/{inference_id}/all_actions.npy", all_actions)
+        np.save(f"{output_dir}/{inference_id}/all_obs.npy", all_obs)
 
         if render:
-            vwrite(f"{output_dir}/vis.mp4", imgs)
-            Video(f"{output_dir}/vis.mp4", embed=True, width=256, height=256)
+            vwrite(f"{output_dir}/{inference_id}/vis.mp4", imgs)
+            Video(
+                f"{output_dir}/{inference_id}/vis.mp4",
+                embed=True,
+                width=256,
+                height=256,
+            )
+
+        return results
 
     def save(self, output_path):
         folder_name = output_path[: -output_path[::-1].index("/")]
