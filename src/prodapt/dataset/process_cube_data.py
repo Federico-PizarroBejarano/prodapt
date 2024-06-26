@@ -50,7 +50,6 @@ def process_trajectory(plot=False):
     df_commands = build_dataframe(data_commands, mode="joint_command")
     df_forces = build_dataframe(data_forces, mode="force_torque")
 
-    # TODO: Find a better solution for merging two multi-column Dataframes
     df_joints.columns = ["__".join(a) for a in df_joints.columns.to_flat_index()]
     df_commands.columns = ["__".join(a) for a in df_commands.columns.to_flat_index()]
     df_forces.columns = ["__".join(a) for a in df_forces.columns.to_flat_index()]

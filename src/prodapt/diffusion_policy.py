@@ -1,7 +1,6 @@
 import collections
 import os
 import pickle
-import select
 import socket
 
 import hydra
@@ -171,16 +170,16 @@ class DiffusionPolicy:
 
         # Socket to send environment reset requests
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setblocking(0)
-        sock.connect_ex((socket.gethostname(), 6000))
-
-        select.select([], [sock], [])
+        sock.connect((socket.gethostname(), 6000))
 
         for inf_id in range(num_inferences):
-            sock.send(bytes("Reset environment", "UTF-8"))
+            sock.send(bytes("reset", "UTF-8"))
             results = self.inference(max_steps, output_dir, inf_id, render, warmstart)
             for key in total_results.keys():
                 total_results[key].append(results[key])
+
+        sock.send(bytes("close", "UTF-8"))
+        sock.close()
 
         final_return = np.mean(total_results["return"])
         final_done = np.mean(total_results["done"])
@@ -360,9 +359,9 @@ class DiffusionPolicy:
     def set_seed(self, seed):
         np.random.seed(seed)
         torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.backends.cudnn.deterministic = True
-            torch.backends.cudnn.benchmark = False
+        # if torch.cuda.is_available():
+        #     torch.backends.cudnn.deterministic = True
+        #     torch.backends.cudnn.benchmark = False
 
     def post_process_action(self, action, all_actions, iter):
         if len(all_actions) == 0:

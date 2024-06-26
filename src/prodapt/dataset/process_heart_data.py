@@ -35,7 +35,6 @@ def process_trajectory(traj_name):
     df_joints = build_dataframe(data_joints, mode="joint_states")
     df_urscript = build_dataframe(data_urscript, mode="urscript")
 
-    # TODO: Find a better solution for merging two multi-column Dataframes
     df_joints.columns = ["__".join(a) for a in df_joints.columns.to_flat_index()]
     df_urscript.columns = ["__".join(a) for a in df_urscript.columns.to_flat_index()]
 

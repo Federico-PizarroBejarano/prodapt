@@ -224,7 +224,6 @@ class ConditionalUnet1D(nn.Module):
         # 1. time
         timesteps = timestep
         if not torch.is_tensor(timesteps):
-            # TODO: this requires sync between CPU and GPU. So try to pass timesteps as tensors if you can
             timesteps = torch.tensor(
                 [timesteps], dtype=torch.long, device=sample.device
             )

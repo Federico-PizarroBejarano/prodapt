@@ -118,6 +118,7 @@ class Simulator:
         sock.setblocking(0)
         sock.bind((socket.gethostname(), 6000))
         sock.listen(0)
+        connection = None
 
         while self.simulation_app.is_running():
             generate_cubes(self.world, 3)
@@ -126,8 +127,9 @@ class Simulator:
             startup_counter = 0
             self.disconnect_controller()
             detection = False
+            reset = False
 
-            while select.select([sock], [], [], 0)[0] == []:
+            while not reset:
                 startup_counter += 1
                 self.world.step(render=True)
 
@@ -148,9 +150,7 @@ class Simulator:
                     self.connect_controller()
                     print("Starting up control!!")
 
-            con, _ = sock.accept()
-            msg = con.recv(1024).decode("UTF-8")
-            print(msg)
+                connection, reset = self.check_connection(sock, connection)
 
             for prim in get_prim_children(world_prim):
                 if "Cube" in prim.GetName():
@@ -184,3 +184,23 @@ class Simulator:
                 ]
             },
         )
+
+    def check_connection(self, sock, connection):
+        reset = False
+
+        if connection is None:
+            if select.select([sock], [], [], 0)[0] != []:
+                connection, _ = sock.accept()
+                connection.setblocking(0)
+        else:
+            try:
+                msg = connection.recv(1024).decode("utf-8")
+                if msg == "reset":
+                    reset = True
+                    print("Resetting!")
+                elif msg == "close":
+                    connection = None
+            except:
+                pass
+
+        return connection, reset

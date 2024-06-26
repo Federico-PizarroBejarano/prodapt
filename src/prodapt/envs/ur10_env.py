@@ -34,13 +34,13 @@ class UR10Env(gym.Env):
         )
 
         self.use_force_obs = False
-        self.use_keypoint_obs = False
+        self.keypoints_in_obs = False
         if "force" in obs_list or "torque" in obs_list or "torque2" in obs_list:
             self.use_force_obs = True
         if np.any(["keypoint" in key for key in obs_list]):
-            self.use_keypoint_obs = True
+            self.keypoints_in_obs = True
 
-        if self.use_keypoint_obs:
+        if self.keypoints_in_obs:
             self.keypoint_manager = KeypointManager(**keypoint_args)
 
     def close(self):
@@ -50,7 +50,7 @@ class UR10Env(gym.Env):
         rclpy.shutdown()
 
     def reset(self):
-        if self.use_keypoint_obs:
+        if self.keypoints_in_obs:
             self.keypoint_manager.reset()
 
         self.command_publisher.send_action(
@@ -98,7 +98,7 @@ class UR10Env(gym.Env):
                 rclpy.spin_once(self.force_subscriber)
             obs = np.concatenate((obs, self.force_subscriber.last_obs))
 
-        if self.use_keypoint_obs:
+        if self.keypoints_in_obs:
             kp_added = self.keypoint_manager.add_keypoint(
                 self.joint_state_subscriber.last_obs,
                 self.force_subscriber.last_full_msg,
