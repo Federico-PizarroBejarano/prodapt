@@ -2,6 +2,7 @@
 checkpoints/
 data/
 outputs/
+slurm/
 
 # Folders created by ROS2 package building
 build/
