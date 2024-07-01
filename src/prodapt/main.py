@@ -3,8 +3,6 @@ from omegaconf import DictConfig
 
 from prodapt.dataset.state_dataset import create_state_dataloader
 from prodapt.diffusion_policy import DiffusionPolicy
-from prodapt.envs.push_t_env import PushTEnv
-from prodapt.envs.ur10_env import UR10Env
 
 
 # HACK: Fix these relative paths for configs
@@ -25,21 +23,7 @@ def main_app(cfg: DictConfig) -> None:
         action_horizon=cfg.parameters.action_horizon,
     )
 
-    if cfg.name == "push_t":
-        env = PushTEnv()
-    elif cfg.name == "ur10":
-        env = UR10Env(
-            controller=cfg.controller,
-            action_list=cfg.action_list,
-            obs_list=cfg.obs_list + keypoint_obs,
-            simulator=cfg.inference.simulator,
-            keypoint_args=None if not cfg.keypoints_in_obs else cfg.keypoint_args,
-        )
-    else:
-        raise NotImplementedError(f"Unknown environment type ({cfg.name}).")
-
     diffusion_policy = DiffusionPolicy(
-        env=env,
         obs_dim=obs_dim,
         action_dim=action_dim,
         obs_horizon=cfg.parameters.obs_horizon,
@@ -59,8 +43,24 @@ def main_app(cfg: DictConfig) -> None:
             checkpoint_path=cfg.inference.checkpoint_path,
         )
     elif cfg.mode == "inference":
+        if cfg.name == "push_t":
+            from prodapt.envs.push_t_env import PushTEnv
+            env = PushTEnv()
+        elif cfg.name == "ur10":
+            from prodapt.envs.ur10_env import UR10Env
+            env = UR10Env(
+                controller=cfg.controller,
+                action_list=cfg.action_list,
+                obs_list=cfg.obs_list + keypoint_obs,
+                simulator=cfg.inference.simulator,
+                keypoint_args=None if not cfg.keypoints_in_obs else cfg.keypoint_args,
+            )
+        else:
+            raise NotImplementedError(f"Unknown environment type ({cfg.name}).")
+
         diffusion_policy.load(input_path=cfg.inference.checkpoint_path)
         diffusion_policy.inference(
+            env=env,
             max_steps=cfg.inference.max_steps,
             render=cfg.inference.render,
             warmstart=cfg.inference.warmstart,

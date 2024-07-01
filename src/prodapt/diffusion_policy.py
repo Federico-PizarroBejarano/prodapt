@@ -21,7 +21,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class DiffusionPolicy:
     def __init__(
         self,
-        env,
         obs_dim,
         action_dim,
         obs_horizon,
@@ -33,7 +32,6 @@ class DiffusionPolicy:
         use_transformer=False,
         network_args=None,
     ):
-        self.env = env
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.obs_horizon = obs_horizon
@@ -161,8 +159,8 @@ class DiffusionPolicy:
                         self.save(checkpoint_path)
                 tglobal.set_postfix(loss=np.mean(epoch_loss))
 
-    def inference(self, max_steps, render=False, warmstart=False):
-        env = self.env
+    def inference(self, env, max_steps, render=False, warmstart=False):
+        self.env = env
         env.seed(self.seed)
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
