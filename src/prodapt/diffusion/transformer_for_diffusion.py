@@ -36,7 +36,6 @@ class TransformerForDiffusion(ModuleAttrMixin):
         if not time_as_cond:
             T += 1
             T_cond -= 1
-        obs_as_cond = cond_dim > 0
         if obs_as_cond:
             assert time_as_cond
             T_cond += n_obs_steps
@@ -53,6 +52,7 @@ class TransformerForDiffusion(ModuleAttrMixin):
         if obs_as_cond:
             self.cond_obs_emb = nn.Linear(cond_dim, n_emb)
 
+        self.n_cond_layers = n_cond_layers
         self.cond_pos_emb = None
         self.encoder = None
         self.decoder = None
@@ -279,6 +279,7 @@ class TransformerForDiffusion(ModuleAttrMixin):
         sample: torch.Tensor,
         timestep: Union[torch.Tensor, float, int],
         global_cond: Optional[torch.Tensor] = None,
+        obs_horizon: Optional[int] = 0,
         **kwargs
     ):
         """
@@ -319,6 +320,18 @@ class TransformerForDiffusion(ModuleAttrMixin):
             # (B,T,n_emb)
         else:
             # encoder
+            if self.n_cond_layers > 0:
+                B = global_cond.shape[0]
+                keypoint_padding = (
+                    torch.linalg.norm(global_cond[:, obs_horizon:, -2:], axis=2) < 0.001
+                )
+                time_and_obs_padding = (
+                    torch.ones((B, obs_horizon + 1)).to(sample.device) == 0.0
+                )
+                obs_cond_padding_mask = torch.hstack(
+                    (time_and_obs_padding, keypoint_padding)
+                )
+
             cond_embeddings = time_emb
             if self.obs_as_cond:
                 cond_obs_emb = self.cond_obs_emb(cond)
@@ -329,7 +342,12 @@ class TransformerForDiffusion(ModuleAttrMixin):
                 :, :tc, :
             ]  # each position maps to a (learnable) vector
             x = self.drop(cond_embeddings + position_embeddings)
-            x = self.encoder(x)
+
+            if self.n_cond_layers > 0:
+                x = self.encoder(x, src_key_padding_mask=obs_cond_padding_mask)
+            else:
+                x = self.encoder(x)
+
             memory = x
             # (B,T_cond,n_emb)
 
@@ -342,7 +360,13 @@ class TransformerForDiffusion(ModuleAttrMixin):
             x = self.drop(token_embeddings + position_embeddings)
             # (B,T,n_emb)
             x = self.decoder(
-                tgt=x, memory=memory, tgt_mask=self.mask, memory_mask=self.memory_mask
+                tgt=x,
+                memory=memory,
+                tgt_mask=self.mask,
+                memory_mask=self.memory_mask,
+                # memory_key_padding_mask=(
+                #     obs_cond_padding_mask if self.n_cond_layers > 0 else None
+                # ),
             )
             # (B,T,n_emb)
 

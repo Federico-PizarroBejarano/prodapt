@@ -1,7 +1,7 @@
 import collections
 import os
 import pickle
-import socket
+import zmq
 
 import hydra
 import numpy as np
@@ -26,6 +26,7 @@ class DiffusionPolicy:
         self,
         env,
         obs_dim,
+        real_obs_dim,
         action_dim,
         obs_horizon,
         pred_horizon,
@@ -35,15 +36,18 @@ class DiffusionPolicy:
         seed=4077,
         use_transformer=False,
         network_args=None,
+        num_keypoints=0,
     ):
         self.env = env
         self.obs_dim = obs_dim
+        self.real_obs_dim = real_obs_dim
         self.action_dim = action_dim
         self.obs_horizon = obs_horizon
         self.pred_horizon = pred_horizon
         self.action_horizon = action_horizon
         self.training_data_stats = training_data_stats
         self.num_diffusion_iters = num_diffusion_iters
+        self.num_keypoints = num_keypoints
 
         self.seed = seed
         self.set_seed(self.seed)
@@ -53,7 +57,8 @@ class DiffusionPolicy:
         if not self.use_transformer:
             self.diffusion_network = ConditionalUnet1D(
                 input_dim=action_dim,
-                global_cond_dim=obs_dim * obs_horizon,
+                global_cond_dim=real_obs_dim * obs_horizon
+                + real_obs_dim * num_keypoints,
                 **network_args,
             ).to(device)
         else:
@@ -61,8 +66,8 @@ class DiffusionPolicy:
                 input_dim=action_dim,
                 output_dim=action_dim,
                 horizon=pred_horizon,
-                n_obs_steps=obs_horizon,
-                cond_dim=obs_dim if network_args["obs_as_cond"] else 0,
+                n_obs_steps=obs_horizon + num_keypoints,
+                cond_dim=real_obs_dim,
                 **network_args,
             ).to(device)
 
@@ -107,15 +112,15 @@ class DiffusionPolicy:
                 with tqdm(dataloader, desc="Batch", leave=False) as tepoch:
                     for nbatch in tepoch:
                         # data normalized in dataset
-                        # device transfer
+                        # device transfer (B, obs_horizon * obs_dim)
                         norm_obs = nbatch["obs"].to(device)
                         norm_action = nbatch["action"].to(device)
                         B = norm_obs.shape[0]
 
-                        # observation as FiLM conditioning
-                        # (B, obs_horizon, obs_dim)
-                        obs_cond = norm_obs[:, : self.obs_horizon, :]
-                        # (B, obs_horizon * obs_dim)
+                        # Observation as FiLM conditioning
+                        # (B, obs_horizon * real_obs_dim + num_keypoints * real_obs_dim)
+                        obs_cond = self.transform_obs_cond(norm_obs)
+
                         if not self.use_transformer:
                             obs_cond = obs_cond.flatten(start_dim=1)
 
@@ -138,7 +143,10 @@ class DiffusionPolicy:
 
                         # predict the noise residual
                         noise_pred = self.diffusion_network(
-                            noisy_actions, timesteps, global_cond=obs_cond
+                            noisy_actions,
+                            timesteps,
+                            global_cond=obs_cond,
+                            obs_horizon=self.obs_horizon,
                         )
 
                         # L2 loss
@@ -168,18 +176,30 @@ class DiffusionPolicy:
         total_results = {"rewards": [], "return": [], "done": []}
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
-        # Socket to send environment reset requests
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((socket.gethostname(), 6000))
+        if self.env.name == "ur10" and self.env.simulator == "isaacsim":
+            # Socket to send environment reset requests
+            context = zmq.Context()
+            sock = context.socket(zmq.REQ)
+            sock.connect("tcp://localhost:5555")
 
         for inf_id in range(num_inferences):
-            sock.send(bytes("reset", "UTF-8"))
+            print(f"Starting Inference #{inf_id+1}")
+            if self.env.name == "ur10" and self.env.simulator == "isaacsim":
+                sock.send(bytes("reset", "UTF-8"))
+                while True:
+                    try:
+                        msg = sock.recv().decode()
+                        if msg == "reset":
+                            break
+                    except:
+                        pass
             results = self.inference(max_steps, output_dir, inf_id, render, warmstart)
             for key in total_results.keys():
                 total_results[key].append(results[key])
 
-        sock.send(bytes("close", "UTF-8"))
-        sock.close()
+        if self.env.name == "ur10" and self.env.simulator == "isaacsim":
+            sock.send(bytes("close", "UTF-8"))
+            sock.close()
 
         final_return = np.mean(total_results["return"])
         final_done = np.mean(total_results["done"])
@@ -215,7 +235,7 @@ class DiffusionPolicy:
         colliding = False
 
         with tqdm(total=max_steps, desc="Evaluation") as pbar:
-            while not done:
+            while not done and step_idx < max_steps:
                 B = 1
                 # stack the last obs_horizon number of observations
                 obs_seq = np.stack(obs_deque)
@@ -230,6 +250,7 @@ class DiffusionPolicy:
                 with torch.no_grad():
                     # reshape observation to (B,obs_horizon*obs_dim)
                     obs_cond = norm_obs.unsqueeze(0)
+                    obs_cond = self.transform_obs_cond(obs_cond)
 
                     if not self.use_transformer:
                         obs_cond = obs_cond.flatten(start_dim=1)
@@ -264,7 +285,10 @@ class DiffusionPolicy:
                     for k in self.noise_scheduler.timesteps:
                         # predict noise
                         noise_pred = self.diffusion_network(
-                            sample=norm_action, timestep=k, global_cond=obs_cond
+                            sample=norm_action,
+                            timestep=k,
+                            global_cond=obs_cond,
+                            obs_horizon=self.obs_horizon,
                         )
 
                         # inverse diffusion step (remove noise)
@@ -314,15 +338,16 @@ class DiffusionPolicy:
                     step_idx += 1
                     pbar.update(1)
                     pbar.set_postfix(reward=reward)
-                    if step_idx > max_steps:
-                        done = True
+                    if step_idx >= max_steps:
+                        break
                     if done:
                         break
                     if colliding:
                         break
 
         # print out the maximum target coverage
-        print("Score: ", sum(rewards))
+        print("Max Score: ", max(rewards))
+        print("Return: ", sum(rewards))
 
         results = {"rewards": rewards, "return": sum(rewards), "done": done}
 
@@ -370,3 +395,16 @@ class DiffusionPolicy:
             next_action = 0.3 * all_actions[-1] + 0.7 * action[iter]
 
         return next_action
+
+    def transform_obs_cond(self, obs_cond):
+        if self.num_keypoints > 0:
+            real_obs = obs_cond[:, :, : self.real_obs_dim]
+            keypoint_obs = obs_cond[:, -1, self.real_obs_dim :].reshape(
+                -1, self.num_keypoints, self.real_obs_dim
+            )
+
+            trans_obs_cond = torch.concat((real_obs, keypoint_obs), axis=1)
+
+            return trans_obs_cond
+        else:
+            return obs_cond

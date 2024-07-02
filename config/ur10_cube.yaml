@@ -19,7 +19,7 @@ transformer_args:
   causal_attn: True
   time_as_cond: True # if false, use BERT like encoder only arch, time as input
   obs_as_cond: True
-  n_cond_layers: 0 # >0: use transformer encoder for cond, otherwise use MLP
+  n_cond_layers: 2 # >0: use transformer encoder for cond, otherwise use MLP
 
 unet_args:
   diffusion_step_embed_dim: 256
@@ -32,10 +32,10 @@ train:
   dataset_path: "./data/ur10/cube.zarr"
 
 inference:
-  num_inferences: 3
+  num_inferences: 25
   max_steps: 1000
   render: False
-  checkpoint_path: "./checkpoints/cube_trans.pt"
+  checkpoint_path: "./checkpoints/cube_new.pt"
   simulator: isaacsim  # possible values: isaacsim
   warmstart: True
 
@@ -48,6 +48,6 @@ parameters:
   action_horizon: 5
 
 keypoint_args:
-  num_keypoints: 5
+  num_keypoints: 10
   min_dist: 0.0254
   threshold_force: 1.0

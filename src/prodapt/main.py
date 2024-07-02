@@ -16,7 +16,7 @@ def main_app(cfg: DictConfig) -> None:
     else:
         keypoint_obs = []
 
-    dataloader, stats, action_dim, obs_dim = create_state_dataloader(
+    dataloader, stats, action_dim, obs_dim, real_obs_dim = create_state_dataloader(
         dataset_path=cfg.train.dataset_path,
         action_list=cfg.action_list,
         obs_list=cfg.obs_list + keypoint_obs,
@@ -41,6 +41,7 @@ def main_app(cfg: DictConfig) -> None:
     diffusion_policy = DiffusionPolicy(
         env=env,
         obs_dim=obs_dim,
+        real_obs_dim=real_obs_dim,
         action_dim=action_dim,
         obs_horizon=cfg.parameters.obs_horizon,
         pred_horizon=cfg.parameters.pred_horizon,
@@ -49,6 +50,9 @@ def main_app(cfg: DictConfig) -> None:
         num_diffusion_iters=cfg.parameters.num_diffusion_iters,
         seed=cfg.seed,
         use_transformer=cfg.use_transformer,
+        num_keypoints=(
+            0 if not cfg.keypoints_in_obs else cfg.keypoint_args.num_keypoints
+        ),
         network_args=cfg.transformer_args if cfg.use_transformer else cfg.unet_args,
     )
 

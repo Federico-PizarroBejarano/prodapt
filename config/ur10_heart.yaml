@@ -7,9 +7,19 @@ action_list: ['commanded_ee_position', 'commanded_ee_rotation_6d']  # possible v
 obs_list: ['ee_position', 'ee_rotation_6d']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d
 keypoints_in_obs: False
 
-use_transformer: False
+use_transformer: True
 
-transformer_args: {}  # use defaults
+transformer_args:
+  n_layer: 8
+  n_head: 4
+  n_emb: 256
+  p_drop_emb: 0.0
+  p_drop_attn: 0.01
+
+  causal_attn: True
+  time_as_cond: True # if false, use BERT like encoder only arch, time as input
+  obs_as_cond: True
+  n_cond_layers: 0 # >0: use transformer encoder for cond, otherwise use MLP
 
 unet_args: {}  # use defaults
 
@@ -18,6 +28,7 @@ train:
   dataset_path: "./data/ur10/ur10_heart.zarr"
 
 inference:
+  num_inferences: 2
   max_steps: 225
   render: False
   checkpoint_path: "./checkpoints/ur10_heart.pt"

@@ -228,6 +228,7 @@ class PushTEnv(gym.Env):
         render_size=96,
         reset_to_state=None,
     ):
+        self.name = "push_t"
         self._seed = None
         self.seed()
         self.window_size = ws = 512  # The size of the PyGame window

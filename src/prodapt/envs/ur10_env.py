@@ -14,6 +14,8 @@ from prodapt.envs.ur10_ros_interface.joints_publisher import JointsPublisher
 class UR10Env(gym.Env):
     def __init__(self, controller, action_list, obs_list, simulator, keypoint_args):
         rclpy.init()
+        self.name = "ur10"
+        self.simulator = simulator
         self.joint_state_subscriber = JointStatesSubscriber(obs_list)
         self.force_subscriber = ForceSubscriber(obs_list)
 
@@ -77,7 +79,7 @@ class UR10Env(gym.Env):
         return obs, reward, done, False, info
 
     def _get_done(self, obs):
-        done = np.linalg.norm(obs[:2] - np.array([1.2, 0])) < 0.025
+        done = np.linalg.norm(obs[:2] - np.array([1.2, 0])) < 0.05
         return done
 
     def seed(self, seed=None):

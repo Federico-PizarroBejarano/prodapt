@@ -210,6 +210,7 @@ class ConditionalUnet1D(nn.Module):
         sample: torch.Tensor,
         timestep: Union[torch.Tensor, float, int],
         global_cond=None,
+        **kwargs,
     ):
         """
         x: (B,T,input_dim)

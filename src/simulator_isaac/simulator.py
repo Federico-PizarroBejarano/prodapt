@@ -1,6 +1,5 @@
 import numpy as np
-import socket
-import select
+import zmq
 
 import omni
 from omni.isaac.core import World
@@ -114,13 +113,13 @@ class Simulator:
         world_prim = get_prim_at_path("/World")
 
         # Socket to receive reset requests
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setblocking(0)
-        sock.bind((socket.gethostname(), 6000))
-        sock.listen(0)
-        connection = None
+        context = zmq.Context()
+        sock = context.socket(zmq.REP)
+        sock.bind("tcp://*:5555")
 
-        while self.simulation_app.is_running():
+        close = False
+
+        while self.simulation_app.is_running() and not close:
             generate_cubes(self.world, 3)
             self.world.step(render=True)
             self.robot.pos_reset()
@@ -150,12 +149,22 @@ class Simulator:
                     self.connect_controller()
                     print("Starting up control!!")
 
-                connection, reset = self.check_connection(sock, connection)
+                try:
+                    message = sock.recv(flags=zmq.NOBLOCK).decode()
+                    if message == "reset":
+                        reset = True
+                        sock.send(b"reset")
+                    elif message == "close":
+                        close = True
+                        reset = True
+                except:
+                    pass
 
             for prim in get_prim_children(world_prim):
                 if "Cube" in prim.GetName():
                     stage.RemovePrim(f"/World/{prim.GetName()}")
 
+        sock.close()
         self.world.stop()
         self.simulation_app.close()
 
@@ -184,23 +193,3 @@ class Simulator:
                 ]
             },
         )
-
-    def check_connection(self, sock, connection):
-        reset = False
-
-        if connection is None:
-            if select.select([sock], [], [], 0)[0] != []:
-                connection, _ = sock.accept()
-                connection.setblocking(0)
-        else:
-            try:
-                msg = connection.recv(1024).decode("utf-8")
-                if msg == "reset":
-                    reset = True
-                    print("Resetting!")
-                elif msg == "close":
-                    connection = None
-            except:
-                pass
-
-        return connection, reset
