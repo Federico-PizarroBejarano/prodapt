@@ -24,7 +24,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class DiffusionPolicy:
     def __init__(
         self,
-        env,
         obs_dim,
         real_obs_dim,
         action_dim,
@@ -38,7 +37,6 @@ class DiffusionPolicy:
         network_args=None,
         num_keypoints=0,
     ):
-        self.env = env
         self.obs_dim = obs_dim
         self.real_obs_dim = real_obs_dim
         self.action_dim = action_dim
@@ -172,11 +170,12 @@ class DiffusionPolicy:
                         self.save(checkpoint_path)
                 tglobal.set_postfix(loss=np.mean(epoch_loss))
 
-    def evaluate(self, num_inferences, max_steps, render=False, warmstart=False):
+    def evaluate(self, env, num_inferences, max_steps, render=False, warmstart=False):
+        env = env
         total_results = {"rewards": [], "return": [], "done": []}
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
-        if self.env.name == "ur10" and self.env.simulator == "isaacsim":
+        if env.name == "ur10" and env.simulator == "isaacsim":
             # Socket to send environment reset requests
             context = zmq.Context()
             sock = context.socket(zmq.REQ)
@@ -184,7 +183,7 @@ class DiffusionPolicy:
 
         for inf_id in range(num_inferences):
             print(f"Starting Inference #{inf_id+1}")
-            if self.env.name == "ur10" and self.env.simulator == "isaacsim":
+            if env.name == "ur10" and env.simulator == "isaacsim":
                 sock.send(bytes("reset", "UTF-8"))
                 while True:
                     try:
@@ -197,7 +196,7 @@ class DiffusionPolicy:
             for key in total_results.keys():
                 total_results[key].append(results[key])
 
-        if self.env.name == "ur10" and self.env.simulator == "isaacsim":
+        if env.name == "ur10" and env.simulator == "isaacsim":
             sock.send(bytes("close", "UTF-8"))
             sock.close()
 
@@ -211,9 +210,8 @@ class DiffusionPolicy:
             pickle.dump(total_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def inference(
-        self, max_steps, output_dir, inference_id, render=False, warmstart=False
+        self, env, max_steps, output_dir, inference_id, render=False, warmstart=False
     ):
-        env = self.env
         env.seed(self.seed)
 
         # get first observation
