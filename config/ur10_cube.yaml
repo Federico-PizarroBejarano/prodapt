@@ -33,7 +33,7 @@ train:
 
 inference:
   num_inferences: 25
-  max_steps: 1000
+  max_steps: 1500
   render: False
   checkpoint_path: "./checkpoints/cube_new.pt"
   simulator: isaacsim  # possible values: isaacsim

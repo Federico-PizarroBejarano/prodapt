@@ -70,6 +70,8 @@ def process_trajectory(plot=False):
                 episode_ends[ep] : episode_ends[ep + 1]
             ]
             plt.plot(positions[:, 0], positions[:, 1])
+            plt.xlim(0.3, 1.3)
+            plt.ylim(-0.45, 0.45)
             plt.show()
         episode_ends = episode_ends[1:]
 

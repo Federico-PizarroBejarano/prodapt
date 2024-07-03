@@ -74,7 +74,7 @@ class UR10Env(gym.Env):
         obs, info = self._get_latest_observation()
 
         done = self._get_done(obs)
-        reward = -1 if not done else 1000
+        reward = -1 if not done else 1500
 
         return obs, reward, done, False, info
 

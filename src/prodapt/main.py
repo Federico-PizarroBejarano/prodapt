@@ -8,12 +8,14 @@ from prodapt.diffusion_policy import DiffusionPolicy
 # HACK: Fix these relative paths for configs
 @hydra.main(version_base=None, config_path="../../config")
 def main_app(cfg: DictConfig) -> None:
-    # Create dataloader
+    print(cfg)
+
     if cfg.keypoints_in_obs:
         keypoint_obs = [f"keypoint{i}" for i in range(cfg.keypoint_args.num_keypoints)]
     else:
         keypoint_obs = []
 
+    # Create dataloader
     dataloader, stats, action_dim, obs_dim, real_obs_dim = create_state_dataloader(
         dataset_path=cfg.train.dataset_path,
         action_list=cfg.action_list,
@@ -47,7 +49,7 @@ def main_app(cfg: DictConfig) -> None:
             dataloader=dataloader,
             checkpoint_path=cfg.inference.checkpoint_path,
         )
-    elif cfg.mode == "inference":
+    else:
         if cfg.name == "push_t":
             from prodapt.envs.push_t_env import PushTEnv
 
@@ -68,16 +70,9 @@ def main_app(cfg: DictConfig) -> None:
         diffusion_policy.load(input_path=cfg.inference.checkpoint_path)
         diffusion_policy.evaluate(
             env=env,
-            num_inferences=1,
-            max_steps=cfg.inference.max_steps,
-            render=cfg.inference.render,
-            warmstart=cfg.inference.warmstart,
-        )
-    elif cfg.mode == "evaluate":
-        diffusion_policy.load(input_path=cfg.inference.checkpoint_path)
-        diffusion_policy.evaluate(
-            env=env,
-            num_inferences=cfg.inference.num_inferences,
+            num_inferences=(
+                1 if cfg.mode == "inference" else cfg.inference.num_inferences
+            ),
             max_steps=cfg.inference.max_steps,
             render=cfg.inference.render,
             warmstart=cfg.inference.warmstart,

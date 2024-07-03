@@ -192,7 +192,9 @@ class DiffusionPolicy:
                             break
                     except:
                         pass
-            results = self.inference(max_steps, output_dir, inf_id, render, warmstart)
+            results = self.inference(
+                env, max_steps, output_dir, inf_id, render, warmstart
+            )
             for key in total_results.keys():
                 total_results[key].append(results[key])
 
