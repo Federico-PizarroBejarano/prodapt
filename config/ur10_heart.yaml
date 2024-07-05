@@ -9,6 +9,8 @@ keypoints_in_obs: False
 
 use_transformer: True
 
+model_name: "ur10_heart"
+
 transformer_args:
   n_layer: 8
   n_head: 4
@@ -31,7 +33,7 @@ inference:
   num_inferences: 2
   max_steps: 225
   render: False
-  checkpoint_path: "./checkpoints/ur10_heart.pt"
+  checkpoint_path: None
   simulator: isaacsim  # possible values: ursim, isaacsim
   warmstart: True
 

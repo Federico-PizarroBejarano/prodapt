@@ -9,6 +9,8 @@ keypoints_in_obs: True
 
 use_transformer: True
 
+model_name: cube
+
 transformer_args:
   n_layer: 8
   n_head: 4
@@ -35,7 +37,7 @@ inference:
   num_inferences: 25
   max_steps: 1500
   render: False
-  checkpoint_path: "./checkpoints/cube_new.pt"
+  checkpoint_path: None
   simulator: isaacsim  # possible values: isaacsim
   warmstart: True
 

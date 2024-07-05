@@ -6,7 +6,7 @@ from omni.isaac.core import World
 import omni.graph.core as og
 from omni.isaac.core.utils.prims import get_prim_at_path, get_prim_children
 
-from simulator_isaac.cube_bypass import generate_cubes
+from simulator_isaac.cube_bypass import generate_cubes, generate_cube_trial
 from simulator_isaac.force_publisher import ForcePublisher
 
 
@@ -108,7 +108,7 @@ class Simulator:
     def on_physics_step(self, step_size) -> None:
         og.Controller.evaluate_sync(self.graph)
 
-    def run(self):
+    def run(self, randomize_cubes):
         stage = omni.usd.get_context().get_stage()
         world_prim = get_prim_at_path("/World")
 
@@ -118,9 +118,26 @@ class Simulator:
         sock.bind("tcp://*:5555")
 
         close = False
+        trials = [
+            "no-cubes",
+            "no-cubes",
+            "1-cube-flat",
+            "1-cube-slanted",
+            "2-cube-wall",
+            "3-cube-wall",
+            "pyramid",
+            "1-sided-bucket",
+            "2-sided-bucket",
+        ]
+        trial_num = 0
 
         while self.simulation_app.is_running() and not close:
-            generate_cubes(self.world, 3)
+            if randomize_cubes:
+                generate_cubes(self.world, 3)
+            else:
+                print(f"Starting trial: {trials[trial_num]}")
+                generate_cube_trial(self.world, trials[trial_num])
+                trial_num += 1
             self.world.step(render=True)
             self.robot.pos_reset()
             startup_counter = 0
@@ -153,7 +170,11 @@ class Simulator:
                     message = sock.recv(flags=zmq.NOBLOCK).decode()
                     if message == "reset":
                         reset = True
-                        sock.send(b"reset")
+                        if trial_num == len(trials):
+                            sock.send(b"close")
+                            close = True
+                        else:
+                            sock.send(b"reset")
                     elif message == "close":
                         close = True
                         reset = True

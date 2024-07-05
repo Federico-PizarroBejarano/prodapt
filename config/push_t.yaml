@@ -8,6 +8,8 @@ keypoints_in_obs: False
 
 use_transformer: False
 
+model_name: "push_t"
+
 transformer_args:
   n_layer: 8
   n_head: 4
@@ -33,7 +35,7 @@ train:
 inference:
   max_steps: 200
   render: True
-  checkpoint_path: "./checkpoints/push_t.pt"
+  checkpoint_path: None
   warmstart: False
 
 parameters:

@@ -1,3 +1,5 @@
+import os
+
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
@@ -43,11 +45,13 @@ def main_app(cfg: DictConfig) -> None:
     )
 
     if cfg.mode == "train":
-        OmegaConf.save(cfg, cfg.inference.checkpoint_path.replace(".pt", ".yaml"))
+        if not os.path.exists(f"./checkpoints/{cfg.model_name}/"):
+            os.makedirs(f"./checkpoints/{cfg.model_name}/")
+        OmegaConf.save(cfg, f"./checkpoints/{cfg.model_name}/{cfg.model_name}.yaml")
         diffusion_policy.train(
             num_epochs=cfg.train.num_epochs,
             dataloader=dataloader,
-            checkpoint_path=cfg.inference.checkpoint_path,
+            model_name=cfg.model_name,
         )
     else:
         if cfg.name == "push_t":
@@ -67,7 +71,14 @@ def main_app(cfg: DictConfig) -> None:
         else:
             raise NotImplementedError(f"Unknown environment type ({cfg.name}).")
 
-        diffusion_policy.load(input_path=cfg.inference.checkpoint_path)
+        diffusion_policy.load(
+            model_name=cfg.model_name,
+            input_path=(
+                None
+                if ["checkpoint_path"] not in cfg.inference
+                else cfg.inference.checkpoint_path
+            ),
+        )
         diffusion_policy.evaluate(
             env=env,
             num_inferences=(

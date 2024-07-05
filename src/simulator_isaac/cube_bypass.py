@@ -32,3 +32,35 @@ def generate_cubes(world, num_cubes):
         )
         cube.set_collision_enabled(True)
         world.scene.add(cube)
+
+
+def generate_cube_trial(world, trial_name, pos_noise=0.0, orient_noise=0.0):
+    trials = {
+        "no-cubes": [],
+        "1-cube-flat": [[-0.8, 0, 0]],
+        "1-cube-slanted": [[-0.8, 0, 0.5]],
+        "2-cube-wall": [[-0.7, 0.075, 0], [-0.7, -0.075, 0]],
+        "3-cube-wall": [[-0.75, 0, 0], [-0.75, -0.15, 0], [-0.75, 0.15, 0]],
+        "pyramid": [[-0.65, 0, 0], [-0.825, -0.125, 0], [-0.825, 0.125, 0]],
+        "1-sided-bucket": [[-0.85, 0, 0], [-0.7, 0.15, 0]],
+        "2-sided-bucket": [[-0.85, 0, 0], [-0.7, 0.15, 0], [-0.7, -0.15, 0]],
+    }
+
+    for cube_pos in trials[trial_name]:
+        x_pos, y_pos, orient = cube_pos
+        x_pos += np.random.normal(0.0, pos_noise)
+        x_pos += np.random.normal(0.0, pos_noise)
+        orient += np.random.normal(0.0, orient_noise)
+
+        idx = int(np.random.rand() * 10000000)
+        cube = DynamicCuboid(
+            prim_path=f"/World/Cube{idx}",
+            name=f"Cube{idx}",
+            position=[x_pos, y_pos, 0.075],
+            size=0.15,
+            mass=20000.0,
+            visible=True,
+            orientation=[orient, 0, 0, (1.0 - orient**2) ** 0.5],
+        )
+        cube.set_collision_enabled(True)
+        world.scene.add(cube)

@@ -22,12 +22,14 @@ def main(args):
 
     simulator.setup()
     simulator.world.reset()
-    simulator.run()
+    simulator.run(args.random)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--random", action="store_true")
     parser.set_defaults(headless=False)
+    parser.set_defaults(randomize_cubes=False)
     args = parser.parse_args()
     main(args)

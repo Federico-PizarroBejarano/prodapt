@@ -11,6 +11,7 @@ from diffusers.optimization import get_scheduler
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusers.training_utils import EMAModel
 from IPython.display import Video
+import matplotlib.pyplot as plt
 from skvideo.io import vwrite
 from tqdm.auto import tqdm
 
@@ -93,7 +94,7 @@ class DiffusionPolicy:
             params=self.diffusion_network.parameters(), lr=1e-4, weight_decay=1e-6
         )
 
-    def train(self, num_epochs, dataloader, checkpoint_path):
+    def train(self, num_epochs, dataloader, model_name):
         # Cosine LR schedule with linear warmup
         self.lr_scheduler = get_scheduler(
             name="cosine",
@@ -102,12 +103,16 @@ class DiffusionPolicy:
             num_training_steps=len(dataloader) * num_epochs,
         )
 
+        losses = []
+
         with tqdm(range(num_epochs), desc="Epoch") as tglobal:
             # epoch loop
             for epoch_idx in tglobal:
                 epoch_loss = list()
                 # batch loop
-                with tqdm(dataloader, desc="Batch", leave=False) as tepoch:
+                with tqdm(
+                    dataloader, desc="Batch", leave=False, disable=True
+                ) as tepoch:
                     for nbatch in tepoch:
                         # data normalized in dataset
                         # device transfer (B, obs_horizon * obs_dim)
@@ -167,14 +172,21 @@ class DiffusionPolicy:
                         tepoch.set_postfix(loss=loss_cpu)
                     if epoch_idx % 5 == 0:
                         # save checkpoint every 5 epochs
-                        self.save(checkpoint_path)
+                        self.save(model_name)
                 tglobal.set_postfix(loss=np.mean(epoch_loss))
+                losses.append(np.mean(epoch_loss))
+
+        plt.plot(losses[2:])
+        plt.xlabel("Epochs")
+        plt.ylabel("Mean Loss")
+        plt.savefig(f"./checkpoints/{model_name}/losses.png")
 
     def evaluate(self, env, num_inferences, max_steps, render=False, warmstart=False):
         env = env
         total_results = {"rewards": [], "return": [], "done": []}
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
+        close = False
         if env.name == "ur10" and env.simulator == "isaacsim":
             # Socket to send environment reset requests
             context = zmq.Context()
@@ -190,8 +202,13 @@ class DiffusionPolicy:
                         msg = sock.recv().decode()
                         if msg == "reset":
                             break
+                        if msg == "close":
+                            close = True
+                            break
                     except:
                         pass
+            if close:
+                break
             results = self.inference(
                 env, max_steps, output_dir, inf_id, render, warmstart
             )
@@ -367,13 +384,17 @@ class DiffusionPolicy:
 
         return results
 
-    def save(self, output_path):
-        folder_name = output_path[: -output_path[::-1].index("/")]
+    def save(self, model_name):
+        folder_name = f"./checkpoints/{model_name}"
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
-        torch.save(self.diffusion_network.state_dict(), output_path)
+        torch.save(
+            self.diffusion_network.state_dict(), f"{folder_name}/{model_name}.pt"
+        )
 
-    def load(self, input_path):
+    def load(self, model_name, input_path):
+        if input_path is None:
+            input_path = f"./checkpoints/{model_name}/{model_name}.pt"
         if not os.path.isfile(input_path):
             raise FileNotFoundError(f"File {input_path} not found.")
 
