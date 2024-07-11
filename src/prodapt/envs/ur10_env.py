@@ -31,6 +31,7 @@ class UR10Env(gym.Env):
             )
 
         self.last_joint_pos = None
+        self.last_obs = None
         self.reset_joint_pos = np.array(
             [[0.45045, -1.79302, -2.73423, -0.18513, 1.5708, -1.12034]]
         )
@@ -62,12 +63,12 @@ class UR10Env(gym.Env):
         )
 
         obs, info = self._get_latest_observation()
-        assert info["kp_added"] is False
         return obs, info
 
     def step(self, action):
         if self.last_joint_pos is None:
             self._get_latest_observation()
+        action = self._limit_action(action)
         self.command_publisher.send_action(
             action=action, duration=0.1, last_joint_pos=self.last_joint_pos
         )
@@ -86,9 +87,6 @@ class UR10Env(gym.Env):
         pass
 
     def _get_latest_observation(self):
-        info = {}
-        kp_added = False
-
         self.joint_state_subscriber.last_obs = None
         while self.joint_state_subscriber.last_obs is None:
             rclpy.spin_once(self.joint_state_subscriber)
@@ -105,6 +103,9 @@ class UR10Env(gym.Env):
                 self.joint_state_subscriber.last_obs,
                 self.force_subscriber.last_full_msg,
             )
+            if kp_added:
+                print(np.round(self.keypoint_manager.all_keypoints[0], 2))
+
             for kp in range(self.keypoint_manager.num_keypoints):
                 obs = np.concatenate(
                     (
@@ -114,7 +115,12 @@ class UR10Env(gym.Env):
                     )
                 )
 
-        info = {"kp_added": kp_added}
-
         self.last_joint_pos = self.joint_state_subscriber.last_joint_pos
-        return obs, info
+        self.last_obs = obs
+        return obs, {}
+
+    def _limit_action(self, action):
+        shortened_action = np.clip(
+            action, self.last_obs[:2] - 0.02, self.last_obs[:2] + 0.02
+        )
+        return shortened_action

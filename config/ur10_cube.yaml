@@ -7,9 +7,9 @@ action_list: ['commanded_ee_position_xy']  # possible values: commanded_ee_posit
 obs_list: ['ee_position_xy', 'torque2']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d, force, torque
 keypoints_in_obs: True
 
-use_transformer: True
+use_transformer: False
 
-model_name: cube
+model_name: cube_cnn
 
 transformer_args:
   n_layer: 8
@@ -35,7 +35,7 @@ train:
 
 inference:
   num_inferences: 25
-  max_steps: 1500
+  max_steps: 1000
   render: False
   checkpoint_path: None
   simulator: isaacsim  # possible values: isaacsim

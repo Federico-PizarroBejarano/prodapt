@@ -38,8 +38,8 @@ obs_keys = [
 ]
 
 
-def process_trajectory(plot=False):
-    bag_file = f"/home/eels/prodapt/data/ur10/{dataset_name}/{dataset_name}_0.db3"
+def rosbag_to_dataframe(rosbag_name, plot=False):
+    bag_file = f"/home/eels/prodapt/data/ur10/{rosbag_name}/{rosbag_name}_0.db3"
     parser = BagFileParser(bag_file)
 
     data_joints = parser.get_messages("/joint_states")
@@ -75,7 +75,7 @@ def process_trajectory(plot=False):
             plt.show()
         episode_ends = episode_ends[1:]
 
-    return df, episode_ends
+    return df[: episode_ends[-1]], episode_ends
 
 
 def get_episode_ends(all_joint_pos):
@@ -260,18 +260,29 @@ def build_dataframe(data, mode):
     return df
 
 
-def build_dataset(keypoint_args):
+def build_dataset(new_dataset_name, rosbag_names, keypoint_args):
     path = "/home/eels/prodapt/data/ur10/"
 
-    shutil.rmtree(path + f"{dataset_name}.zarr", ignore_errors=True)
-    f = zarr.group(path + f"{dataset_name}.zarr")
+    shutil.rmtree(path + f"{new_dataset_name}.zarr", ignore_errors=True)
+    f = zarr.group(path + f"{new_dataset_name}.zarr")
     dataset = f.create_group("data")
 
     actions = dataset.create_group("action")
     obs = dataset.create_group("obs")
 
-    df, episode_ends = process_trajectory()
-    df = add_keypoints(df, episode_ends, keypoint_args)
+    dfs = []
+    episode_ends_lists = np.array([0])
+
+    for rosbag in rosbag_names:
+        df, episode_ends = rosbag_to_dataframe(rosbag)
+        df = add_keypoints(df, episode_ends, keypoint_args)
+        dfs.append(df)
+        episode_ends_lists = np.concatenate(
+            [episode_ends_lists, np.squeeze(episode_ends) + episode_ends_lists[-1]]
+        )
+
+    df = pd.concat(dfs, ignore_index=True)
+    episode_ends = episode_ends_lists[1:]
 
     for key in action_keys:
         actions.create_dataset(key, data=df[key].astype(np.float32).to_numpy())
@@ -301,13 +312,14 @@ def add_keypoints(df, episode_ends, keypoint_args):
     keypoint_manager = KeypointManager(**keypoint_args)
     for ee in range(1, len(aug_episode_ends)):
         keypoint_manager.reset()
+        num_keypoints = 0
 
         for idx in range(aug_episode_ends[ee - 1], aug_episode_ends[ee]):
             position = list(new_df.loc[idx, "ee_position"])[:2]
             force = list(new_df.loc[idx, "force"])
             torque = list(new_df.loc[idx, "torque"])
 
-            keypoint_manager.add_keypoint(position, force + torque)
+            added = keypoint_manager.add_keypoint(position, force + torque)
             for kp in range(keypoint_args["num_keypoints"]):
                 new_df.loc[idx, f"keypoint{kp}"] = np.concatenate(
                     (
@@ -315,15 +327,20 @@ def add_keypoints(df, episode_ends, keypoint_args):
                         keypoint_manager.all_keypoints[kp][1],
                     )
                 )
+            if added:
+                num_keypoints += 1
+
+        print(ee, num_keypoints)
 
     return new_df
 
 
 if __name__ == "__main__":
-    dataset_name = "cube"
+    rosbag_names = ["cube", "cube2"]
+    new_dataset_name = "cube_12"
     keypoint_args = {
         "num_keypoints": 15,
         "min_dist": 0.0254,
         "threshold_force": 1.0,
     }
-    build_dataset(keypoint_args)
+    build_dataset(new_dataset_name, rosbag_names, keypoint_args)

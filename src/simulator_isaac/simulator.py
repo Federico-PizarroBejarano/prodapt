@@ -6,7 +6,7 @@ from omni.isaac.core import World
 import omni.graph.core as og
 from omni.isaac.core.utils.prims import get_prim_at_path, get_prim_children
 
-from simulator_isaac.cube_bypass import generate_cubes, generate_cube_trial
+from simulator_isaac.cube_bypass import generate_random_cubes, generate_cube_trial
 from simulator_isaac.force_publisher import ForcePublisher
 
 
@@ -17,7 +17,9 @@ class Simulator:
 
         self.force_publisher = ForcePublisher()
 
-        self.world = World(stage_units_in_meters=1.0)
+        self.world = World(
+            stage_units_in_meters=1.0, physics_dt=1.0 / 100.0, rendering_dt=1.0 / 100.0
+        )
         physics_context = self.world.get_physics_context()
         physics_context.enable_ccd(True)
         self.world.scene.add_default_ground_plane()
@@ -128,15 +130,24 @@ class Simulator:
             "pyramid",
             "1-sided-bucket",
             "2-sided-bucket",
+            "random",
+            "random_4",
+            "random_5",
         ]
         trial_num = 0
 
         while self.simulation_app.is_running() and not close:
             if randomize_cubes:
-                generate_cubes(self.world, 3)
+                print("Starting trial")
+                generate_random_cubes(self.world, 3)
             else:
                 print(f"Starting trial: {trials[trial_num]}")
-                generate_cube_trial(self.world, trials[trial_num])
+                generate_cube_trial(
+                    self.world,
+                    trials[trial_num],
+                    pos_noise=[0.02, 0.02],
+                    orient_noise=[0.0, 0.02],
+                )
                 trial_num += 1
             self.world.step(render=True)
             self.robot.pos_reset()
@@ -164,7 +175,6 @@ class Simulator:
 
                 if startup_counter == 10:
                     self.connect_controller()
-                    print("Starting up control!!")
 
                 try:
                     message = sock.recv(flags=zmq.NOBLOCK).decode()
