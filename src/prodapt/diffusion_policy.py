@@ -181,9 +181,17 @@ class DiffusionPolicy:
         plt.ylabel("Mean Loss")
         plt.savefig(f"./checkpoints/{model_name}/losses.png")
 
-    def evaluate(self, env, num_inferences, max_steps, render=False, warmstart=False):
+    def evaluate(
+        self,
+        env,
+        num_inferences,
+        max_steps,
+        model_name,
+        render=False,
+        warmstart=False,
+    ):
         env = env
-        total_results = {"rewards": [], "return": [], "done": []}
+        total_results = {"iters": [], "done": []}
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
         close = False
@@ -219,13 +227,13 @@ class DiffusionPolicy:
             self.sock.send(bytes("close", "UTF-8"))
             self.sock.close()
 
-        final_return = np.mean(total_results["return"])
         final_done = np.mean(total_results["done"])
 
-        print(f"Mean Return: {final_return}")
         print(f"Mean Done: {final_done}")
 
-        with open(f"{output_dir}/total_results.pkl", "wb") as handle:
+        print(total_results)
+
+        with open(f"./results/{model_name}.pkl", "wb") as handle:
             pickle.dump(total_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def inference(
@@ -241,7 +249,6 @@ class DiffusionPolicy:
 
         if render:
             imgs = [env.render(mode="rgb_array")]
-        rewards = list()
         done = False
         step_idx = 0
 
@@ -249,6 +256,7 @@ class DiffusionPolicy:
         all_obs = [obs_deque[0]]
 
         prev_action_traj = None
+        warmstart_div = 5
 
         with tqdm(total=max_steps, desc="Evaluation") as pbar:
             while not done and step_idx < max_steps:
@@ -278,7 +286,11 @@ class DiffusionPolicy:
                     if not warmstart or prev_action_traj is None:
                         noisy_action = noise
                     else:
-                        noisy_action = torch.concatenate(
+                        # TODO: Test number of warmstarting steps
+                        timestep = self.noise_scheduler.timesteps[
+                            [-self.num_diffusion_iters // warmstart_div]
+                        ]
+                        norm_action = torch.concatenate(  # TODO: Test this vs just the previous traj
                             (
                                 prev_action_traj[:, self.action_horizon :, :],
                                 torch.tile(
@@ -288,14 +300,17 @@ class DiffusionPolicy:
                             ),
                             axis=1,
                         )
-                        noisy_action += noise * 0.5
+
+                        noisy_action = self.noise_scheduler.add_noise(
+                            norm_action, noise, timestep
+                        )
                     norm_action = noisy_action
 
                     if not warmstart or prev_action_traj is None:
                         timesteps = self.noise_scheduler.timesteps
                     else:
                         timesteps = self.noise_scheduler.timesteps[
-                            self.num_diffusion_iters // 2 :
+                            -self.num_diffusion_iters // warmstart_div :
                         ]
 
                     for k in timesteps:
@@ -332,14 +347,12 @@ class DiffusionPolicy:
                 for i in range(len(action)):
                     # stepping env
                     next_action = self.post_process_action(action, all_actions, i)
-                    obs, reward, done, _, _ = env.step(next_action)
+                    obs, _, done, _, _ = env.step(next_action)
                     all_actions.append(next_action)
                     all_obs.append(obs)
 
                     # save observations
                     obs_deque.append(obs)
-                    # and reward
-                    rewards.append(reward)
 
                     if render:
                         imgs.append(env.render(mode="rgb_array"))
@@ -347,17 +360,15 @@ class DiffusionPolicy:
                     # update progress bar
                     step_idx += 1
                     pbar.update(1)
-                    pbar.set_postfix(reward=reward)
                     if step_idx >= max_steps:
                         break
                     if done:
                         break
 
         # print out the maximum target coverage
-        print("Max Score: ", max(rewards))
-        print("Return: ", sum(rewards))
+        print("Total Iters: ", step_idx)
 
-        results = {"rewards": rewards, "return": sum(rewards), "done": done}
+        results = {"iters": step_idx, "done": done}
 
         os.makedirs(f"{output_dir}/{inference_id}")
 

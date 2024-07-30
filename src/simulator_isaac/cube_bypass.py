@@ -23,10 +23,10 @@ def generate_random_cubes(world, num_cubes, y_span=0.6):
         add_cube(world, cube_pos[0], cube_pos[1], z_angle)
 
 
-def generate_cube_trial(
-    world, trial_name, pos_noise=[0.0, 0.0], orient_noise=[0.0, 0.0]
+def generate_cube_setup(
+    world, setup_name, pos_noise=[0.0, 0.0], orient_noise=[0.0, 0.0]
 ):
-    trials = {
+    setups = {
         "no-cubes": [],
         "1-cube-flat": [[-0.8, 0, 0]],
         "1-cube-slanted": [[-0.8, 0, 0.5]],
@@ -44,14 +44,14 @@ def generate_cube_trial(
     group_y_translation = np.random.normal(0.0, pos_noise[0])
     group_rotation = np.random.normal(0.0, orient_noise[0])
 
-    if trial_name == "random":
+    if setup_name == "random":
         generate_random_cubes(world, 3, 0.5)
-    elif trial_name == "random_4":
+    elif setup_name == "random_4":
         generate_random_cubes(world, 4, 0.6)
-    elif trial_name == "random_5":
+    elif setup_name == "random_5":
         generate_random_cubes(world, 5, 0.7)
     else:
-        for cube_pose in trials[trial_name]:
+        for cube_pose in setups[setup_name]:
             x_pos, y_pos, orient = cube_pose
             x_pos += np.random.normal(0.0, pos_noise[1]) + group_x_translation
             y_pos += np.random.normal(0.0, pos_noise[1]) + group_y_translation

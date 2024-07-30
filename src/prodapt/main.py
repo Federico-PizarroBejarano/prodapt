@@ -87,6 +87,7 @@ def main_app(cfg: DictConfig) -> None:
             max_steps=cfg.inference.max_steps,
             render=cfg.inference.render,
             warmstart=cfg.inference.warmstart,
+            model_name=cfg.model_name,
         )
 
 

@@ -6,7 +6,7 @@ from omni.isaac.core import World
 import omni.graph.core as og
 from omni.isaac.core.utils.prims import get_prim_at_path, get_prim_children
 
-from simulator_isaac.cube_bypass import generate_random_cubes, generate_cube_trial
+from simulator_isaac.cube_bypass import generate_random_cubes, generate_cube_setup
 from simulator_isaac.force_publisher import ForcePublisher
 
 
@@ -120,35 +120,41 @@ class Simulator:
         sock.bind("tcp://*:5555")
 
         close = False
-        trials = [
+        setups = [
             "no-cubes",
             "no-cubes",
             "1-cube-flat",
-            "1-cube-slanted",
-            "2-cube-wall",
+            # "1-cube-slanted",
+            # "2-cube-wall",
             "3-cube-wall",
             "pyramid",
-            "1-sided-bucket",
+            # "1-sided-bucket",
             "2-sided-bucket",
-            "random",
+            # "random",
             "random_4",
-            "random_5",
+            # "random_5",
         ]
+        setup_num = 0
         trial_num = 0
+        num_trials = 2
 
         while self.simulation_app.is_running() and not close:
             if randomize_cubes:
-                print("Starting trial")
+                print("Starting setup")
                 generate_random_cubes(self.world, 3)
             else:
-                print(f"Starting trial: {trials[trial_num]}")
-                generate_cube_trial(
+                print(f"Starting setup: {setups[setup_num]}, trial #{trial_num+1}")
+                generate_cube_setup(
                     self.world,
-                    trials[trial_num],
+                    setups[setup_num],
                     pos_noise=[0.02, 0.02],
                     orient_noise=[0.0, 0.02],
                 )
                 trial_num += 1
+                if trial_num >= num_trials or setup_num == 0:
+                    setup_num += 1
+                    trial_num = 0
+
             self.world.step(render=True)
             self.robot.pos_reset()
             startup_counter = 0
@@ -180,7 +186,7 @@ class Simulator:
                     message = sock.recv(flags=zmq.NOBLOCK).decode()
                     if message == "reset":
                         reset = True
-                        if trial_num == len(trials):
+                        if setup_num == len(setups):
                             sock.send(b"close")
                             close = True
                         else:
