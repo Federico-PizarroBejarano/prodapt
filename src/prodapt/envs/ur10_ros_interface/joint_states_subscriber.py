@@ -3,7 +3,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 
 from prodapt.utils.kinematics_utils import forward_kinematics
-from prodapt.utils.rotation_utils import matrix_to_rotation_6d
+from prodapt.utils.rotation_utils import matrix_to_rotation_6d, real_exp_transform
 
 
 class JointStatesSubscriber(Node):
@@ -45,6 +45,7 @@ class JointStatesSubscriber(Node):
         if "ee_position_xy" in self.obs_list:
             T_matrix = forward_kinematics(joint_pos.reshape(6, 1))
             translation = T_matrix[:3, 3].squeeze()
+            translation[:2] = real_exp_transform(translation, inverse=True)[:2]
             self.last_obs.append(translation[:2])
         if "ee_rotation_6d" in self.obs_list:
             T_matrix = forward_kinematics(joint_pos.reshape(6, 1))

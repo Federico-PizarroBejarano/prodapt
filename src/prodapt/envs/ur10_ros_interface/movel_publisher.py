@@ -16,7 +16,7 @@ class MovelPublisher(Node):
             String, "/urscript_interface/script_command", 10
         )
 
-    def send_action(self, action, duration, **kwargs):
+    def send_action(self, action, duration=0, **kwargs):
         applied_action = self.base_command.copy()
         if "commanded_ee_position" in self.action_list:
             applied_action[:3] = action[:3]
