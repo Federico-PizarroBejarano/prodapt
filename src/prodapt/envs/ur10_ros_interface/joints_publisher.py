@@ -1,5 +1,3 @@
-import time
-
 from rclpy.node import Node
 from rclpy.time import Duration
 
@@ -77,4 +75,3 @@ class JointsPublisher(Node):
             joint_command.position = [float(elem) for elem in best_IK]
 
         self.publisher.publish(joint_command)
-        time.sleep(duration)

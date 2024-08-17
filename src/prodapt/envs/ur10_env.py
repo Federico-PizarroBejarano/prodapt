@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import gymnasium as gym
 import rclpy
@@ -20,10 +21,10 @@ class UR10Env(gym.Env):
         self.force_subscriber = ForceSubscriber(obs_list)
 
         if controller == "movel":
-            self.base_command = [0.4, 0, 0.1, 3.14, 0, 0]
+            self.base_command = [0.6, 0, 0.125, 3.14, 0, 0]
             self.command_publisher = MovelPublisher(action_list=action_list)
         elif controller == "joints":
-            self.base_command = [0.4, 0, 0.1, 1, 0, 0, 0, -1, 0]
+            self.base_command = [0.6, 0, 0.125, 1, 0, 0, 0, -1, 0]
             self.command_publisher = JointsPublisher(
                 action_list=action_list,
                 simulator=simulator,
@@ -58,9 +59,11 @@ class UR10Env(gym.Env):
 
         self.command_publisher.send_action(
             action=self.base_command,
-            duration=3,
+            duration=4,
             last_joint_pos=self.reset_joint_pos,
         )
+
+        time.sleep(4)
 
         obs, info = self._get_latest_observation()
         return obs, info

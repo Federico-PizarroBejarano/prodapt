@@ -2,6 +2,7 @@ import collections
 import os
 import pickle
 import zmq
+import time
 
 import hydra
 import numpy as np
@@ -191,7 +192,7 @@ class DiffusionPolicy:
         warmstart=False,
     ):
         env = env
-        total_results = {"iters": [], "done": []}
+        total_results = {"iters": [], "done": [], "time": []}
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
         close = False
@@ -201,7 +202,8 @@ class DiffusionPolicy:
             self.sock = context.socket(zmq.REQ)
             self.sock.connect("tcp://localhost:5555")
 
-        for inf_id in range(num_inferences):
+        inf_id = 0
+        while True:
             print(f"Starting Inference #{inf_id+1}")
             if env.name == "ur10" and env.simulator == "isaacsim":
                 self.sock.send(bytes("reset", "UTF-8"))
@@ -222,9 +224,10 @@ class DiffusionPolicy:
             )
             for key in total_results.keys():
                 total_results[key].append(results[key])
+            inf_id += 1
 
         if env.name == "ur10" and env.simulator == "isaacsim":
-            self.sock.send(bytes("close", "UTF-8"))
+            # self.sock.send(bytes("close", "UTF-8"))
             self.sock.close()
 
         final_done = np.mean(total_results["done"])
@@ -258,8 +261,12 @@ class DiffusionPolicy:
         prev_action_traj = None
         warmstart_div = 5
 
+        start_time = time.time()
+        prev_time = start_time
+        all_diff_times = []
+
         with tqdm(total=max_steps, desc="Evaluation") as pbar:
-            while not done and step_idx < max_steps:
+            while not (done and step_idx > 50) and step_idx < max_steps:
                 B = 1
                 # stack the last obs_horizon number of observations
                 obs_seq = np.stack(obs_deque)
@@ -313,6 +320,7 @@ class DiffusionPolicy:
                             -self.num_diffusion_iters // warmstart_div :
                         ]
 
+                    diff_start_time = time.time()
                     for k in timesteps:
                         # predict noise
                         noise_pred = self.diffusion_network(
@@ -326,6 +334,8 @@ class DiffusionPolicy:
                         norm_action = self.noise_scheduler.step(
                             model_output=noise_pred, timestep=k, sample=norm_action
                         ).prev_sample
+                    diff_time = time.time() - diff_start_time
+                    all_diff_times.append(diff_time)
 
                     prev_action_traj = norm_action
 
@@ -341,10 +351,15 @@ class DiffusionPolicy:
                 start = self.obs_horizon - 1
                 end = start + self.action_horizon
                 action = action_pred[start:end, :]  # (action_horizon, action_dim)
+                assert action.shape[0] == self.action_horizon
 
                 # execute action_horizon number of steps
                 # without replanning
                 for i in range(len(action)):
+                    # Set rate at 10Hz
+                    time.sleep(max(0, 0.1 - (time.time() - prev_time)))
+                    prev_time = time.time()
+
                     # stepping env
                     next_action = self.post_process_action(action, all_actions, i)
                     obs, _, done, _, _ = env.step(next_action)
@@ -362,13 +377,18 @@ class DiffusionPolicy:
                     pbar.update(1)
                     if step_idx >= max_steps:
                         break
-                    if done:
+                    if done and step_idx > 50:
                         break
 
         # print out the maximum target coverage
         print("Total Iters: ", step_idx)
 
-        results = {"iters": step_idx, "done": done}
+        results = {
+            "iters": step_idx,
+            "done": done,
+            "time": time.time() - start_time,
+            "diff_times": all_diff_times,
+        }
 
         os.makedirs(f"{output_dir}/{inference_id}")
 

@@ -17,12 +17,16 @@ def main_app(cfg: DictConfig) -> None:
     else:
         keypoint_obs = []
 
+    updated_pred_horizon = cfg.parameters.pred_horizon + cfg.parameters.obs_horizon
+    if updated_pred_horizon % 4 != 0:
+        updated_pred_horizon += 4 - (updated_pred_horizon % 4)
+
     # Create dataloader
     dataloader, stats, action_dim, obs_dim, real_obs_dim = create_state_dataloader(
         dataset_path=cfg.train.dataset_path,
         action_list=cfg.action_list,
         obs_list=cfg.obs_list + keypoint_obs,
-        pred_horizon=cfg.parameters.pred_horizon,
+        pred_horizon=updated_pred_horizon,
         obs_horizon=cfg.parameters.obs_horizon,
         action_horizon=cfg.parameters.action_horizon,
     )
@@ -31,8 +35,8 @@ def main_app(cfg: DictConfig) -> None:
         obs_dim=obs_dim,
         real_obs_dim=real_obs_dim,
         action_dim=action_dim,
+        pred_horizon=updated_pred_horizon,
         obs_horizon=cfg.parameters.obs_horizon,
-        pred_horizon=cfg.parameters.pred_horizon,
         action_horizon=cfg.parameters.action_horizon,
         training_data_stats=stats,
         num_diffusion_iters=cfg.parameters.num_diffusion_iters,
