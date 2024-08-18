@@ -12,11 +12,12 @@ class KeypointManager:
         if not self._detect_contact(force_torque):
             return False
 
+        curr_angle_2rep = np.squeeze(self._get_yaw(force_torque[4:]))
         for keypoint in self.all_keypoints:
             dist = np.linalg.norm(np.squeeze(position) - np.squeeze(keypoint[0]))
             if dist <= self.min_dist:
-                angle_2rep = np.squeeze(self._get_yaw(force_torque))
-                angle_dist = np.linalg.norm(np.squeeze(keypoint[1]) - angle_2rep)
+                other_angle_2rep = np.squeeze(self._get_yaw(keypoint[1]))
+                angle_dist = np.linalg.norm(other_angle_2rep - curr_angle_2rep)
                 if angle_dist < 0.75:
                     return False
 
@@ -25,16 +26,14 @@ class KeypointManager:
 
     def _queue_keypoint(self, position, force_torque):
         self.all_keypoints[1:] = self.all_keypoints[:-1]
-
-        angle_2rep = self._get_yaw(force_torque)
-        self.all_keypoints[0] = (position, angle_2rep)
+        self.all_keypoints[0] = (position, force_torque[4:])
 
     def _detect_contact(self, force_torque):
-        torque = force_torque[4:]
+        torque = force_torque[-2:]
         return np.linalg.norm(torque) > self.threshold_force
 
-    def _get_yaw(self, force_torque):
-        angle = np.arctan2(force_torque[5], force_torque[4])
+    def _get_yaw(self, ee_torque):
+        angle = np.arctan2(ee_torque[0], ee_torque[1])
         angle_2rep = (np.sin(angle), np.cos(angle))
         return angle_2rep
 

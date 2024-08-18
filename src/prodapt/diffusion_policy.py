@@ -57,8 +57,8 @@ class DiffusionPolicy:
         if not self.use_transformer:
             self.diffusion_network = ConditionalUnet1D(
                 input_dim=action_dim,
-                global_cond_dim=real_obs_dim * obs_horizon
-                + real_obs_dim * num_keypoints,
+                global_cond_dim=(real_obs_dim + 1) * obs_horizon
+                + (real_obs_dim + 1) * num_keypoints,
                 **network_args,
             ).to(device)
         else:
@@ -67,7 +67,7 @@ class DiffusionPolicy:
                 output_dim=action_dim,
                 horizon=pred_horizon,
                 n_obs_steps=obs_horizon + num_keypoints,
-                cond_dim=real_obs_dim,
+                cond_dim=real_obs_dim + 1,
                 **network_args,
             ).to(device)
 
@@ -116,13 +116,13 @@ class DiffusionPolicy:
                 ) as tepoch:
                     for nbatch in tepoch:
                         # data normalized in dataset
-                        # device transfer (B, obs_horizon * obs_dim)
+                        # device transfer (B, obs_horizon + num_keypoints, obs_dim)
                         norm_obs = nbatch["obs"].to(device)
                         norm_action = nbatch["action"].to(device)
                         B = norm_obs.shape[0]
 
                         # Observation as FiLM conditioning
-                        # (B, obs_horizon * real_obs_dim + num_keypoints * real_obs_dim)
+                        # (B, obs_horizon + num_keypoints, real_obs_dim + 1)
                         obs_cond = self.transform_obs_cond(norm_obs)
 
                         if not self.use_transformer:
@@ -236,8 +236,8 @@ class DiffusionPolicy:
 
         print(total_results)
 
-        with open(f"./results/{model_name}.pkl", "wb") as handle:
-            pickle.dump(total_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # with open(f"./results8/{model_name}.pkl", "wb") as handle:
+        #     pickle.dump(total_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def inference(
         self, env, max_steps, output_dir, inference_id, render=False, warmstart=False
@@ -248,7 +248,10 @@ class DiffusionPolicy:
         obs, _ = env.reset()
 
         # keep a queue of last obs_horizon steps of observations
-        obs_deque = collections.deque([obs] * self.obs_horizon, maxlen=self.obs_horizon)
+        obs_deque = collections.deque(
+            [obs] * (self.obs_horizon + self.num_keypoints),
+            maxlen=self.obs_horizon + self.num_keypoints,
+        )
 
         if render:
             imgs = [env.render(mode="rgb_array")]
@@ -279,7 +282,7 @@ class DiffusionPolicy:
 
                 # infer action
                 with torch.no_grad():
-                    # reshape observation to (B,obs_horizon*obs_dim)
+                    # reshape observation to (B, obs_horizon*obs_dim)
                     obs_cond = norm_obs.unsqueeze(0)
                     obs_cond = self.transform_obs_cond(obs_cond)
 
@@ -441,13 +444,35 @@ class DiffusionPolicy:
 
     def transform_obs_cond(self, obs_cond):
         if self.num_keypoints > 0:
-            real_obs = obs_cond[:, :, : self.real_obs_dim]
+            real_obs = obs_cond[:, :, : self.real_obs_dim].flip(dims=(1,))
+            zeros = torch.zeros(
+                (obs_cond.shape[0], obs_cond.shape[1], 1), device=real_obs.device
+            )
+            real_obs = torch.concatenate((zeros, real_obs), axis=2)
             keypoint_obs = obs_cond[:, -1, self.real_obs_dim :].reshape(
                 -1, self.num_keypoints, self.real_obs_dim
             )
 
-            trans_obs_cond = torch.concat((real_obs, keypoint_obs), axis=1)
+            ones = torch.ones((obs_cond.shape[1], 1), device=real_obs.device)
+            for sample in range(real_obs.shape[0]):
+                num_kps = 0
+                for kp in range(self.num_keypoints):
+                    if (
+                        keypoint_obs[sample, kp, -2] == 0
+                        and keypoint_obs[sample, kp, -1] == 0
+                    ):
+                        break
+                    num_kps += 1
 
-            return trans_obs_cond
+                if num_kps > 0:
+                    real_obs[sample, -num_kps:, :] = torch.concatenate(
+                        (
+                            ones[:num_kps, :].clone(),
+                            keypoint_obs[sample, :num_kps, :],
+                        ),
+                        axis=1,
+                    )
+
+            return real_obs
         else:
             return obs_cond

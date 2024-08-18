@@ -337,10 +337,10 @@ def add_keypoints(df, episode_ends, keypoint_args):
 
 if __name__ == "__main__":
     rosbag_names = ["cube", "cube2"]
-    new_dataset_name = "cube_12"
+    new_dataset_name = "cube_alt"
     keypoint_args = {
         "num_keypoints": 15,
-        "min_dist": 0.0254,
+        "min_dist": 0.04,
         "threshold_force": 1.0,
     }
     build_dataset(new_dataset_name, rosbag_names, keypoint_args)

@@ -34,6 +34,7 @@ class StateDataset(torch.utils.data.Dataset):
         pred_horizon,
         obs_horizon,
         action_horizon,
+        num_keypoints,
     ):
         # Read from zarr dataset
         dataset_root = zarr.open(dataset_path, "r")
@@ -65,7 +66,7 @@ class StateDataset(torch.utils.data.Dataset):
         # Computes start and end of each state-action sequence and pads
         indices = create_sample_indices(
             episode_ends=episode_ends,
-            sequence_length=pred_horizon,
+            sequence_length=pred_horizon + num_keypoints,
             # Add padding such that each timestep in the dataset is seen
             pad_before=obs_horizon - 1,
             pad_after=action_horizon - 1,
@@ -84,6 +85,7 @@ class StateDataset(torch.utils.data.Dataset):
         self.pred_horizon = pred_horizon
         self.action_horizon = action_horizon
         self.obs_horizon = obs_horizon
+        self.num_keypoints = num_keypoints
 
     def __len__(self):
         # All possible segments of the dataset
@@ -101,7 +103,7 @@ class StateDataset(torch.utils.data.Dataset):
         # Get normalized data using these indices
         nsample = sample_sequence(
             train_data=self.normalized_train_data,
-            sequence_length=self.pred_horizon,
+            sequence_length=self.pred_horizon + self.num_keypoints,
             buffer_start_idx=buffer_start_idx,
             buffer_end_idx=buffer_end_idx,
             sample_start_idx=sample_start_idx,
@@ -109,12 +111,19 @@ class StateDataset(torch.utils.data.Dataset):
         )
 
         # Discard unused observations
-        nsample["obs"] = nsample["obs"][: self.obs_horizon, :]
+        nsample["action"] = nsample["action"][self.num_keypoints :, :]
+        nsample["obs"] = nsample["obs"][: self.obs_horizon + self.num_keypoints, :]
         return nsample
 
 
 def create_state_dataloader(
-    dataset_path, action_list, obs_list, pred_horizon, obs_horizon, action_horizon
+    dataset_path,
+    action_list,
+    obs_list,
+    pred_horizon,
+    obs_horizon,
+    action_horizon,
+    num_keypoints,
 ):
     # Create dataset from file
     dataset = StateDataset(
@@ -124,6 +133,7 @@ def create_state_dataloader(
         pred_horizon=pred_horizon,
         obs_horizon=obs_horizon,
         action_horizon=action_horizon,
+        num_keypoints=num_keypoints,
     )
     # Save training data statistics (min, max) for each dim
     stats = dataset.stats

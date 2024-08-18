@@ -29,6 +29,9 @@ def main_app(cfg: DictConfig) -> None:
         pred_horizon=updated_pred_horizon,
         obs_horizon=cfg.parameters.obs_horizon,
         action_horizon=cfg.parameters.action_horizon,
+        num_keypoints=(
+            0 if not cfg.keypoints_in_obs else cfg.keypoint_args.num_keypoints
+        ),
     )
 
     diffusion_policy = DiffusionPolicy(

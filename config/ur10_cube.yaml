@@ -9,7 +9,7 @@ keypoints_in_obs: True
 
 use_transformer: False
 
-model_name: best_ours
+model_name: test2
 
 transformer_args:
   n_layer: 8
@@ -30,8 +30,8 @@ unet_args:
   n_groups: 8
 
 train:
-  num_epochs: 5000
-  dataset_path: ./data/ur10/cube_12.zarr
+  num_epochs: 2000
+  dataset_path: ./data/ur10/cube_alt.zarr
 
 inference:
   num_inferences: 25
@@ -42,7 +42,7 @@ inference:
   warmstart: True
 
 parameters:
-  num_diffusion_iters: 15
+  num_diffusion_iters: 45
 
   # Diffusion horizons
   pred_horizon: 20
@@ -50,6 +50,6 @@ parameters:
   action_horizon: 10
 
 keypoint_args:
-  num_keypoints: 10
-  min_dist: 0.0254
+  num_keypoints: 7
+  min_dist: 0.04
   threshold_force: 1.0
