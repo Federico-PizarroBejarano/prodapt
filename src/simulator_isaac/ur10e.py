@@ -34,8 +34,6 @@ class UR10e(SingleManipulator):
         self.pos_reset()
 
     def pos_reset(self):
-        positions = np.array(
-            [[0.45045, -1.79302, -2.73423, -0.18513, 1.5708, -1.12034]]
-        )
+        positions = np.array([[0.4506, -1.9807, -2.7387, 0.0049, 1.5708, -1.1203]])
         self.set_joint_velocities(velocities=[0, 0, 0, 0, 0, 0])
         self.set_joint_positions(positions=positions)

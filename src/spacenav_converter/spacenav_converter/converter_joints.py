@@ -100,7 +100,7 @@ class ConverterToJoints(Node):
                 - self.timer_period * self.spacenav_to_delta_const * linear.x,
                 t.transform.translation.y
                 - self.timer_period * self.spacenav_to_delta_const * linear.y,
-                0.1,
+                0.055,
                 # t.transform.translation.z
                 # + self.timer_period * self.spacenav_to_delta_const * linear.z,
             ]

@@ -6,7 +6,7 @@ from omni.isaac.core import World
 import omni.graph.core as og
 from omni.isaac.core.utils.prims import get_prim_at_path, get_prim_children
 
-from simulator_isaac.cube_bypass import generate_random_cubes, generate_cube_setup
+from simulator_isaac.cube_bypass import generate_random_cubes, generate_maze
 from simulator_isaac.force_publisher import ForcePublisher
 
 
@@ -112,6 +112,7 @@ class Simulator:
 
     def run(self, randomize_cubes):
         stage = omni.usd.get_context().get_stage()
+        tool0_prim = get_prim_at_path("/World/UR10e/tool0")
         world_prim = get_prim_at_path("/World")
 
         # Socket to receive reset requests
@@ -120,23 +121,11 @@ class Simulator:
         sock.bind("tcp://*:5555")
 
         close = False
-        setups = [
-            "no-cubes",
-            "no-cubes",
-            "1-cube-flat",
-            # "1-cube-slanted",
-            # "2-cube-wall",
-            "3-cube-wall",
-            # "pyramid",
-            # "1-sided-bucket",
-            "2-sided-bucket",
-            # "random",
-            # "random_4",
-            # "random_5",
-        ]
-        setup_num = 0
         trial_num = 0
-        num_trials = 10
+        max_trials = 10
+
+        start = np.array([-0.4, 0])
+        end = np.array([-1.2, 0])
 
         while self.simulation_app.is_running():
             if randomize_cubes:
@@ -146,19 +135,13 @@ class Simulator:
                 if close:
                     close = False
                     trial_num = 0
-                    setup_num = 0
 
-                print(f"Starting setup: {setups[setup_num]}, trial #{trial_num+1}")
-                generate_cube_setup(
+                print(f"Starting trial #{trial_num+1}")
+                generate_maze(
                     self.world,
-                    setups[setup_num],
-                    pos_noise=0.01,
-                    orient_noise=0.01,
+                    setup_name="clear" if np.random.randint(0, 10) == 0 else "h-wall",
                 )
                 trial_num += 1
-                if trial_num >= num_trials or setup_num == 0:
-                    setup_num += 1
-                    trial_num = 0
 
             self.world.step(render=True)
             self.robot.pos_reset()
@@ -166,13 +149,31 @@ class Simulator:
             self.disconnect_controller()
             detection = False
             reset = False
+            found_end = False
 
             while not reset:
                 startup_counter += 1
                 self.world.step(render=True)
 
+                if startup_counter == 10:
+                    self.connect_controller()
+
+                matrix = omni.usd.get_world_transform_matrix(tool0_prim)
+                translate = matrix.ExtractTranslation()
+
+                print(np.round(translate[:2], 2))
+
                 measured_forces = self.robot.get_measured_joint_forces()
                 ee_force = measured_forces[-3, :]
+
+                if not found_end and np.linalg.norm(translate[:2] - end) < 0.02:
+                    found_end = True
+                    print("FOUND END")
+                if found_end and np.linalg.norm(translate[:2] - start) < 0.02:
+                    reset = True
+                    print("DONE")
+                    ee_force[0] = 1000
+
                 self.force_publisher.publish_force(ee_force)
 
                 prev_detection = detection
@@ -184,14 +185,11 @@ class Simulator:
                 if prev_detection and not detection:
                     print("-------")
 
-                if startup_counter == 20:
-                    self.connect_controller()
-
                 try:
                     message = sock.recv(flags=zmq.NOBLOCK).decode()
                     if message == "reset":
                         reset = True
-                        if setup_num == len(setups):
+                        if trial_num >= max_trials:
                             sock.send(b"close")
                             close = True
                         else:

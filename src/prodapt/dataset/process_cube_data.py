@@ -54,14 +54,24 @@ def rosbag_to_dataframe(rosbag_name, plot=False):
     df_commands.columns = ["__".join(a) for a in df_commands.columns.to_flat_index()]
     df_forces.columns = ["__".join(a) for a in df_forces.columns.to_flat_index()]
 
+    episode_end_timestamps = get_episode_end_timestamps(df_forces)
+
     df = pd.merge_asof(
         df_commands, df_joints, on="timestamp__timestamp", direction="nearest"
     )
     df = pd.merge_asof(df, df_forces, on="timestamp__timestamp", direction="nearest")
 
+    episode_ends = list(
+        df.iloc[
+            abs(
+                df["timestamp__timestamp"].to_numpy()[:, None] - episode_end_timestamps
+            ).argmin(0)
+        ].index
+    )
+
     df.columns = pd.MultiIndex.from_tuples([a.split("__") for a in df.columns])
 
-    episode_ends = get_episode_ends(df["joint_pos"])
+    # episode_ends = get_episode_ends(df["joint_pos"])
 
     if plot is True:
         episode_ends = [0] + episode_ends
@@ -93,6 +103,12 @@ def get_episode_ends(all_joint_pos):
         i = ee_end + 100
 
     return episode_ends
+
+
+def get_episode_end_timestamps(df_force):
+    episode_ends = df_force.index[df_force["force__x"] == 1000].tolist()
+    timestamps = np.array(df_force["timestamp__timestamp"][episode_ends]).reshape(1, -1)
+    return timestamps
 
 
 def build_dataframe(data, mode):
@@ -336,11 +352,11 @@ def add_keypoints(df, episode_ends, keypoint_args):
 
 
 if __name__ == "__main__":
-    rosbag_names = ["cube", "cube2"]
-    new_dataset_name = "cube_12"
+    rosbag_names = ["maze"]
+    new_dataset_name = "maze"
     keypoint_args = {
-        "num_keypoints": 15,
-        "min_dist": 0.0254,
+        "num_keypoints": 10,
+        "min_dist": 0.07,
         "threshold_force": 1.0,
     }
     build_dataset(new_dataset_name, rosbag_names, keypoint_args)

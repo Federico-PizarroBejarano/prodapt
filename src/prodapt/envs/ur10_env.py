@@ -21,10 +21,10 @@ class UR10Env(gym.Env):
         self.force_subscriber = ForceSubscriber(obs_list)
 
         if controller == "movel":
-            self.base_command = [0.6, 0, 0.125, 3.14, 0, 0]
+            self.base_command = [0.4, 0, 0.055, 3.14, 0, 0]
             self.command_publisher = MovelPublisher(action_list=action_list)
         elif controller == "joints":
-            self.base_command = [0.6, 0, 0.125, 1, 0, 0, 0, -1, 0]
+            self.base_command = [0.4, 0, 0.055, 1, 0, 0, 0, -1, 0]
             self.command_publisher = JointsPublisher(
                 action_list=action_list,
                 simulator=simulator,
@@ -47,6 +47,10 @@ class UR10Env(gym.Env):
         if self.keypoints_in_obs:
             self.keypoint_manager = KeypointManager(**keypoint_args)
 
+        self.start = np.array([0.4, 0])
+        self.end = np.array([1.2, 0])
+        self.found_end = False
+
     def close(self):
         self.joint_state_subscriber.destroy_node()
         self.force_subscriber.destroy_node()
@@ -64,6 +68,7 @@ class UR10Env(gym.Env):
         )
 
         time.sleep(4)
+        self.found_end = False
 
         obs, info = self._get_latest_observation()
         return obs, info
@@ -83,7 +88,11 @@ class UR10Env(gym.Env):
         return obs, reward, done, False, info
 
     def _get_done(self, obs):
-        done = np.linalg.norm(obs[:2] - np.array([1.2, 0])) < 0.05
+        done = False
+        if not self.found_end and np.linalg.norm(obs[:2] - self.end) < 0.02:
+            self.found_end = True
+        if self.found_end and np.linalg.norm(obs[:2] - self.start) < 0.02:
+            done = True
         return done
 
     def seed(self, seed=None):
