@@ -12,7 +12,7 @@ setup(
     ],
     install_requires=["setuptools"],
     zip_safe=True,
-    maintainer="bejarano",
+    maintainer="Federico Pizarro Bejarano",
     maintainer_email="bejarano@jpl.nasa.gov",
     description="Converts Spacenav messages from 3D mouse to different messages to command UR10.",
     license="Copyright 2024 NASA Jet Propulsion Laboratory",
