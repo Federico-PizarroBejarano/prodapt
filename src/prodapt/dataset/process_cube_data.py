@@ -316,10 +316,9 @@ def add_keypoints(df, episode_ends, keypoint_args):
 
         for idx in range(aug_episode_ends[ee - 1], aug_episode_ends[ee]):
             position = list(new_df.loc[idx, "ee_position"])[:2]
-            force = list(new_df.loc[idx, "force"])
-            torque = list(new_df.loc[idx, "torque"])
+            torque2 = list(new_df.loc[idx, "torque2"])
 
-            added = keypoint_manager.add_keypoint(position, force + torque)
+            added = keypoint_manager.add_keypoint(position, torque2)
             for kp in range(keypoint_args["num_keypoints"]):
                 new_df.loc[idx, f"keypoint{kp}"] = np.concatenate(
                     (

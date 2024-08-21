@@ -12,7 +12,6 @@ class ForceSubscriber(Node):
         )
 
         self.last_obs = None
-        self.last_full_msg = None
 
     def listener_callback(self, msg):
         self.last_obs = []
@@ -29,13 +28,3 @@ class ForceSubscriber(Node):
             self.last_obs.append([msg.wrench.torque.y, msg.wrench.torque.z])
 
         self.last_obs = np.concatenate(self.last_obs)
-        self.last_full_msg = np.array(
-            [
-                msg.wrench.force.x,
-                msg.wrench.force.y,
-                msg.wrench.force.z,
-                msg.wrench.torque.x,
-                msg.wrench.torque.y,
-                msg.wrench.torque.z,
-            ]
-        )

@@ -104,7 +104,7 @@ class UR10Env(gym.Env):
         if self.keypoints_in_obs:
             kp_added = self.keypoint_manager.add_keypoint(
                 self.joint_state_subscriber.last_obs,
-                self.force_subscriber.last_full_msg,
+                self.force_subscriber.last_obs,
             )
             if kp_added:
                 print(np.round(self.keypoint_manager.all_keypoints[0], 2))
