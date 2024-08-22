@@ -34,7 +34,7 @@ inference:
   max_steps: 225
   render: False
   checkpoint_path: None
-  simulator: isaacsim  # possible values: ursim, isaacsim
+  interface: isaacsim  # possible values: ursim, isaacsim
   warmstart: True
 
 parameters:
