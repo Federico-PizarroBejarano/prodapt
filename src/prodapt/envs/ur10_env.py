@@ -1,4 +1,3 @@
-import time
 import numpy as np
 import gymnasium as gym
 import rclpy
@@ -11,9 +10,6 @@ from prodapt.envs.ur10_ros_interface.force_subscriber import ForceSubscriber
 from prodapt.envs.ur10_ros_interface.movel_publisher import MovelPublisher
 from prodapt.envs.ur10_ros_interface.joints_publisher import JointsPublisher
 
-from prodapt.utils.kinematics_utils import forward_kinematics
-from prodapt.utils.rotation_utils import real_exp_transform
-
 
 class UR10Env(gym.Env):
     def __init__(self, controller, action_list, obs_list, simulator, keypoint_args):
@@ -23,11 +19,13 @@ class UR10Env(gym.Env):
         self.joint_state_subscriber = JointStatesSubscriber(obs_list)
         self.force_subscriber = ForceSubscriber(obs_list)
 
+        x, y, z = 0.6, 0.0, 0.3
+
         if controller == "movel":
-            self.base_command = [0.4, 0, 0.1, 3.14, 0, 0]
+            self.base_command = [x, y, z, 3.14, 0, 0]
             self.command_publisher = MovelPublisher(action_list=action_list)
         elif controller == "joints":
-            self.base_command = [0.4, 0, 0.1, 1, 0, 0, 0, -1, 0]
+            self.base_command = [x, y, z, 0, 1, 0, 1, 0, 0]
             self.command_publisher = JointsPublisher(
                 action_list=action_list,
                 simulator=simulator,
@@ -47,8 +45,7 @@ class UR10Env(gym.Env):
         if np.any(["keypoint" in key for key in obs_list]):
             self.keypoints_in_obs = True
 
-        if self.keypoints_in_obs:
-            self.keypoint_manager = KeypointManager(**keypoint_args)
+        self.keypoint_manager = KeypointManager(**keypoint_args)
 
     def close(self):
         self.joint_state_subscriber.destroy_node()
@@ -57,14 +54,10 @@ class UR10Env(gym.Env):
         rclpy.shutdown()
 
     def position_control_loop(self, action, z_offset=0.0):
-        curr_pos = np.array([100, 100, 100])
-        transformed_action = np.squeeze(real_exp_transform(action)[:3])
-        transformed_action[2] = self.base_command[2] + z_offset
-        while np.linalg.norm(transformed_action - curr_pos) > 0.01:
+        goal_joints = np.array([100, 100, 100, 100, 100, 100])
+        while np.linalg.norm(goal_joints - self.last_joint_pos) > 0.01:
             self._get_latest_observation()
-            ee_pose = forward_kinematics(self.last_joint_pos.reshape((6,1)))
-            curr_pos = np.squeeze(ee_pose[0:3, 3])
-            self.command_publisher.send_action(
+            goal_joints = self.command_publisher.send_action(
                 action=action,
                 last_joint_pos=self.last_joint_pos,
                 z_offset=z_offset
@@ -72,31 +65,21 @@ class UR10Env(gym.Env):
         self.command_publisher.send_zeros()
 
     def reset(self):
-        if self.keypoints_in_obs:
-            self.keypoint_manager.reset()
+        self._get_latest_observation()
 
         self.position_control_loop(
             action=self.base_command,
             last_joint_pos=self.reset_joint_pos
         )
 
+        if self.keypoints_in_obs:
+            self.keypoint_manager.reset()
+
         obs, info = self._get_latest_observation()
         return obs, info
 
     def hard_reset(self):
-        if self.keypoints_in_obs:
-            self.keypoint_manager.reset()
-
         self._get_latest_observation()
-
-        ee_pose = forward_kinematics(self.last_joint_pos.reshape((6,1)))
-        curr_pos = ee_pose[0:3, 3]
-        above_curr = self.base_command.copy()
-        above_curr[:2] = real_exp_transform(curr_pos, inverse=True)[:2]
-        self.position_control_loop(
-            action=above_curr,
-            z_offset=0.15
-        )
 
         self.position_control_loop(
             action=self.base_command,
@@ -106,6 +89,9 @@ class UR10Env(gym.Env):
         self.position_control_loop(
             action=self.base_command,
         )
+
+        if self.keypoints_in_obs:
+            self.keypoint_manager.reset()
 
         obs, info = self._get_latest_observation()
         return obs, info

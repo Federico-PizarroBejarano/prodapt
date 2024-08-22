@@ -66,7 +66,7 @@ def main_app(cfg: DictConfig) -> None:
                 action_list=cfg.action_list,
                 obs_list=cfg.obs_list + keypoint_obs,
                 simulator=cfg.inference.simulator,
-                keypoint_args=None if not cfg.keypoints_in_obs else cfg.keypoint_args,
+                keypoint_args=cfg.keypoint_args,
             )
         else:
             raise NotImplementedError(f"Unknown environment type ({cfg.name}).")

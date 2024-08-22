@@ -2,6 +2,8 @@ import numpy as np
 from rclpy.node import Node
 from geometry_msgs.msg import WrenchStamped
 
+from prodapt.utils.rotation_utils import real_exp_transform
+
 
 class ForceSubscriber(Node):
     def __init__(self, obs_list):
@@ -26,7 +28,7 @@ class ForceSubscriber(Node):
                 [msg.wrench.torque.x, msg.wrench.torque.y, msg.wrench.torque.z]
             )
         if "torque2" in self.obs_list:
-            self.last_obs.append([msg.wrench.torque.y, msg.wrench.torque.z])
+            self.last_obs.append(real_exp_transform([msg.wrench.torque.x, msg.wrench.torque.y], inverse=True))
 
         self.last_obs = np.concatenate(self.last_obs)
         self.last_full_msg = np.array(

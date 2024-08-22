@@ -14,7 +14,8 @@ from prodapt.utils.rotation_utils import (
     get_T_matrix,
     matrix_to_quaternion,
     rotation_6d_to_matrix,
-    real_exp_transform
+    real_exp_transform,
+    bound_angles
 )
 
 
@@ -45,6 +46,8 @@ class JointsPublisher(Node):
             "wrist_3_joint",
         ]
 
+        self.snap_speedup = 2.0
+
     def send_action(self, action, last_joint_pos, duration=0, z_offset=0.0):
         applied_action = self.base_command.copy()
         if "commanded_ee_position" in self.action_list:
@@ -61,16 +64,14 @@ class JointsPublisher(Node):
 
         if self.simulator == "ursim":
             joint_command = Float64MultiArray()
-            joint_command.data = [(float(best_IK[i]) - np.squeeze(last_joint_pos)[i]) for i in range(6)]
-            joint_command.data[-1] = 0.0
-            snap_speedup = 2.0
-            joint_command.data = [min(max(joint_command.data[i]*snap_speedup, -0.05), 0.05) for i in range(6)]
+            joint_vels = bound_angles(best_IK - last_joint_pos)
+            joint_vels = np.clip(joint_vels*self.snap_speedup, -0.05, 0.05)
+            joint_command.data = list(joint_vels)
 
             # Limit acceleration
-            vel_diff = [joint_command.data[i] - self.prev_velocity[i] for i in range(6)]
-            clipped_vel_diff = [min(max(vel_diff[i], -0.001), 0.001) for i in range(6)]
-            joint_command.data = [self.prev_velocity[i] + clipped_vel_diff[i] for i in range(6)]
-            self.prev_velocity = joint_command.data
+            vel_diff = np.clip(joint_vels - self.prev_velocity, -0.025, 0.025)
+            joint_command.data = list(self.prev_velocity + vel_diff)
+            self.prev_velocity += vel_diff
         elif self.simulator == "isaacsim":
             header = Header()
             header.stamp = self.get_clock().now().to_msg()
@@ -82,6 +83,7 @@ class JointsPublisher(Node):
 
         self.publisher.publish(joint_command)
         time.sleep(duration)
+        return best_IK
 
     def send_zeros(self):
         if self.simulator == "ursim":
