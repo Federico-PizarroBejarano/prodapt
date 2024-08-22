@@ -197,7 +197,7 @@ class DiffusionPolicy:
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
         close = False
-        if env.name == "ur10" and env.simulator == "isaacsim":
+        if env.name == "ur10" and env.interface == "isaacsim":
             # Socket to send environment reset requests
             context = zmq.Context()
             self.sock = context.socket(zmq.REQ)
@@ -205,7 +205,7 @@ class DiffusionPolicy:
 
         for inf_id in range(num_inferences):
             print(f"Starting Inference #{inf_id+1}")
-            if env.name == "ur10" and env.simulator == "isaacsim":
+            if env.name == "ur10" and env.interface == "isaacsim":
                 self.sock.send(bytes("reset", "UTF-8"))
                 while True:
                     try:
@@ -225,8 +225,8 @@ class DiffusionPolicy:
             for key in total_results.keys():
                 total_results[key].append(results[key])
 
-        if env.name == "ur10" and env.simulator == "isaacsim":
-            self.sock.send(bytes("close", "UTF-8"))
+        if env.name == "ur10" and env.interface == "isaacsim":
+            # self.sock.send(bytes("close", "UTF-8"))
             self.sock.close()
 
         final_done = np.mean(total_results["done"])
@@ -384,7 +384,12 @@ class DiffusionPolicy:
         # print out the maximum target coverage
         print("Total Iters: ", step_idx)
 
-        results = {"iters": step_idx, "done": done, "time": time.time()-start_time, "diff_times": all_diff_times}
+        results = {
+            "iters": step_idx,
+            "done": done,
+            "time": time.time() - start_time,
+            "diff_times": all_diff_times,
+        }
 
         os.makedirs(f"{output_dir}/{inference_id}")
 

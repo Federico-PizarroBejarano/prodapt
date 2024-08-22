@@ -21,18 +21,18 @@ class ConverterToJoints(Node):
     def __init__(self):
         super().__init__("converter_to_joints")
 
-        self.declare_parameter(name="simulator", value="ursim")
-        self.simulator = (
-            self.get_parameter("simulator").get_parameter_value().string_value
+        self.declare_parameter(name="interface", value="ur-driver")
+        self.interface = (
+            self.get_parameter("interface").get_parameter_value().string_value
         )
 
-        if self.simulator == "ursim":
+        if self.interface == "ur-driver":
             self.publisher = self.create_publisher(
                 Float64MultiArray,
                 "/forward_velocity_controller/commands",
                 10,
             )
-        if self.simulator == "isaacsim":
+        if self.interface == "isaacsim":
             self.publisher = self.create_publisher(JointState, "/joint_command", 10)
 
         self.spacenav_subscription = self.create_subscription(

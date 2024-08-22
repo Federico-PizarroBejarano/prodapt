@@ -18,7 +18,7 @@ class Simulator:
         self.force_publisher = ForcePublisher()
 
         self.world = World(
-            stage_units_in_meters=1.0, physics_dt=1.0 / 100.0, rendering_dt=1.0 / 100.0
+            stage_units_in_meters=1.0, physics_dt=1.0 / 200.0, rendering_dt=1.0 / 50.0
         )
         physics_context = self.world.get_physics_context()
         physics_context.enable_ccd(True)
@@ -127,28 +127,33 @@ class Simulator:
             # "1-cube-slanted",
             # "2-cube-wall",
             "3-cube-wall",
-            "pyramid",
+            # "pyramid",
             # "1-sided-bucket",
             "2-sided-bucket",
             # "random",
-            "random_4",
+            # "random_4",
             # "random_5",
         ]
         setup_num = 0
         trial_num = 0
-        num_trials = 2
+        num_trials = 10
 
-        while self.simulation_app.is_running() and not close:
+        while self.simulation_app.is_running():
             if randomize_cubes:
                 print("Starting setup")
                 generate_random_cubes(self.world, 3)
             else:
+                if close:
+                    close = False
+                    trial_num = 0
+                    setup_num = 0
+
                 print(f"Starting setup: {setups[setup_num]}, trial #{trial_num+1}")
                 generate_cube_setup(
                     self.world,
                     setups[setup_num],
-                    pos_noise=[0.02, 0.02],
-                    orient_noise=[0.0, 0.02],
+                    pos_noise=0.01,
+                    orient_noise=0.01,
                 )
                 trial_num += 1
                 if trial_num >= num_trials or setup_num == 0:
@@ -179,7 +184,7 @@ class Simulator:
                 if prev_detection and not detection:
                     print("-------")
 
-                if startup_counter == 10:
+                if startup_counter == 20:
                     self.connect_controller()
 
                 try:

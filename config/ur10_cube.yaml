@@ -9,7 +9,7 @@ keypoints_in_obs: True
 
 use_transformer: False
 
-model_name: cube_cnn
+model_name: best_ours
 
 transformer_args:
   n_layer: 8
@@ -31,14 +31,14 @@ unet_args:
 
 train:
   num_epochs: 1000
-  dataset_path: "./data/ur10/cube.zarr"
+  dataset_path: ./data/ur10/cube_12.zarr
 
 inference:
   num_inferences: 25
   max_steps: 1000
   render: False
   checkpoint_path: None
-  simulator: isaacsim  # possible values: isaacsim
+  interface: isaacsim  # possible values: ur-driver, isaacsim
   warmstart: True
 
 parameters:
@@ -47,7 +47,7 @@ parameters:
   # Diffusion horizons
   pred_horizon: 20
   obs_horizon: 3
-  action_horizon: 5
+  action_horizon: 10
 
 keypoint_args:
   num_keypoints: 10

@@ -1,7 +1,7 @@
 # Folders created by the training and inference tasks
-checkpoints/
+checkpoints*/
 data/
-results/
+results*/
 outputs/
 slurm/
 

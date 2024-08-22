@@ -4,7 +4,7 @@
   <name>spacenav_converter</name>
   <version>0.0.0</version>
   <description>Converts Spacenav messages from 3D mouse to different messages to command UR10.</description>
-  <maintainer email="bejarano@jpl.nasa.gov">bejarano</maintainer>
+  <maintainer email="bejarano@jpl.nasa.gov">Federico Pizarro Bejarano</maintainer>
   <license>Copyright 2024 NASA Jet Propulsion Laboratory</license>
 
   <exec_depend>rclpy</exec_depend>

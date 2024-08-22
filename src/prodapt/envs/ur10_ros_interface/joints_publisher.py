@@ -1,4 +1,3 @@
-import time
 import numpy as np
 
 from rclpy.node import Node
@@ -20,21 +19,21 @@ from prodapt.utils.rotation_utils import (
 
 
 class JointsPublisher(Node):
-    def __init__(self, action_list, simulator, base_command):
+    def __init__(self, action_list, interface, base_command):
         super().__init__("joints_publisher")
 
         self.action_list = action_list
-        self.simulator = simulator
+        self.interface = interface
         self.base_command = base_command
 
-        if self.simulator == "ursim":
+        if self.interface == "ur-driver":
             self.publisher = self.create_publisher(
                 Float64MultiArray,
                 "/forward_velocity_controller/commands",
                 10,
             )
             self.prev_velocity = [0.0]*6
-        if self.simulator == "isaacsim":
+        if self.interface == "isaacsim":
             self.publisher = self.create_publisher(JointState, "/joint_command", 10)
 
         self.ordered_link_names = [
@@ -62,7 +61,7 @@ class JointsPublisher(Node):
         IK = inverse_kinematics(transformation_matrix)
         best_IK = choose_best_ik(IK, last_joint_pos)
 
-        if self.simulator == "ursim":
+        if self.interface == "ur-driver":
             joint_command = Float64MultiArray()
             joint_vels = bound_angles(best_IK - last_joint_pos)
             joint_vels = np.clip(joint_vels*self.snap_speedup, -0.05, 0.05)
@@ -72,7 +71,7 @@ class JointsPublisher(Node):
             vel_diff = np.clip(joint_vels - self.prev_velocity, -0.025, 0.025)
             joint_command.data = list(self.prev_velocity + vel_diff)
             self.prev_velocity += vel_diff
-        elif self.simulator == "isaacsim":
+        elif self.interface == "isaacsim":
             header = Header()
             header.stamp = self.get_clock().now().to_msg()
             header.frame_id = ""
@@ -82,11 +81,10 @@ class JointsPublisher(Node):
             joint_command.position = [float(elem) for elem in best_IK]
 
         self.publisher.publish(joint_command)
-        time.sleep(duration)
         return best_IK
 
     def send_zeros(self):
-        if self.simulator == "ursim":
+        if self.interface == "ur-driver":
             joint_command = Float64MultiArray()
             joint_command.data = [0.0]*6
 
