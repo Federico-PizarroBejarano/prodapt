@@ -17,7 +17,7 @@ def main_app(cfg: DictConfig) -> None:
     else:
         keypoint_obs = []
 
-    updated_pred_horizon = cfg.parameters.pred_horizon + cfg.parameters.obs_horizon
+    updated_pred_horizon = cfg.parameters.pred_horizon + cfg.parameters.min_obs_horizon
     if updated_pred_horizon % 4 != 0:
         updated_pred_horizon += 4 - (updated_pred_horizon % 4)
 
@@ -28,6 +28,7 @@ def main_app(cfg: DictConfig) -> None:
         obs_list=cfg.obs_list + keypoint_obs,
         pred_horizon=updated_pred_horizon,
         obs_horizon=cfg.parameters.obs_horizon,
+        min_obs_horizon=cfg.parameters.min_obs_horizon,
         action_horizon=cfg.parameters.action_horizon,
     )
 
@@ -37,6 +38,7 @@ def main_app(cfg: DictConfig) -> None:
         action_dim=action_dim,
         pred_horizon=updated_pred_horizon,
         obs_horizon=cfg.parameters.obs_horizon,
+        min_obs_horizon=cfg.parameters.min_obs_horizon,
         action_horizon=cfg.parameters.action_horizon,
         training_data_stats=stats,
         num_diffusion_iters=cfg.parameters.num_diffusion_iters,
@@ -46,6 +48,7 @@ def main_app(cfg: DictConfig) -> None:
             0 if not cfg.keypoints_in_obs else cfg.keypoint_args.num_keypoints
         ),
         network_args=cfg.transformer_args if cfg.use_transformer else cfg.unet_args,
+        relative_time=False if "relative_time" not in cfg else cfg.relative_time,
     )
 
     if cfg.mode == "train":

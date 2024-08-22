@@ -47,6 +47,8 @@ class UR10Env(gym.Env):
         if self.keypoints_in_obs:
             self.keypoint_manager = KeypointManager(**keypoint_args)
 
+        self.obs_list = obs_list
+
     def close(self):
         self.joint_state_subscriber.destroy_node()
         self.force_subscriber.destroy_node()
@@ -65,17 +67,17 @@ class UR10Env(gym.Env):
 
         time.sleep(4)
 
-        obs, info = self._get_latest_observation()
+        obs, info = self._get_latest_observation(step_idx=0)
         return obs, info
 
-    def step(self, action):
+    def step(self, action, step_idx):
         if self.last_joint_pos is None:
-            self._get_latest_observation()
+            self._get_latest_observation(step_idx=step_idx)
         action = self._limit_action(action)
         self.command_publisher.send_action(
             action=action, duration=0.1, last_joint_pos=self.last_joint_pos
         )
-        obs, info = self._get_latest_observation()
+        obs, info = self._get_latest_observation(step_idx=step_idx)
 
         done = self._get_done(obs)
         reward = -1 if not done else 1500
@@ -83,13 +85,13 @@ class UR10Env(gym.Env):
         return obs, reward, done, False, info
 
     def _get_done(self, obs):
-        done = np.linalg.norm(obs[:2] - np.array([1.2, 0])) < 0.05
+        done = np.linalg.norm(obs[1:3] - np.array([1.2, 0])) < 0.05
         return done
 
     def seed(self, seed=None):
         pass
 
-    def _get_latest_observation(self):
+    def _get_latest_observation(self, step_idx):
         self.joint_state_subscriber.last_obs = None
         while self.joint_state_subscriber.last_obs is None:
             rclpy.spin_once(self.joint_state_subscriber)
@@ -103,6 +105,7 @@ class UR10Env(gym.Env):
 
         if self.keypoints_in_obs:
             kp_added = self.keypoint_manager.add_keypoint(
+                step_idx,
                 self.joint_state_subscriber.last_obs,
                 self.force_subscriber.last_obs,
             )
@@ -115,8 +118,12 @@ class UR10Env(gym.Env):
                         obs,
                         self.keypoint_manager.all_keypoints[kp][0],
                         self.keypoint_manager.all_keypoints[kp][1],
+                        self.keypoint_manager.all_keypoints[kp][2],
                     )
                 )
+
+        if "abs_time" in self.obs_list:
+            obs = np.concatenate(([step_idx], obs))
 
         self.last_joint_pos = self.joint_state_subscriber.last_joint_pos
         self.last_obs = obs
@@ -124,6 +131,6 @@ class UR10Env(gym.Env):
 
     def _limit_action(self, action):
         shortened_action = np.clip(
-            action, self.last_obs[:2] - 0.02, self.last_obs[:2] + 0.02
+            action, self.last_obs[1:3] - 0.02, self.last_obs[1:3] + 0.02
         )
         return shortened_action

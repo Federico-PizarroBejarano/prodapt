@@ -26,6 +26,7 @@ action_keys = [
     "commanded_ee_rotation_6d",
 ]
 obs_keys = [
+    "abs_time",
     "joint_pos",
     "joint_vel",
     "joint_eff",
@@ -275,6 +276,7 @@ def build_dataset(new_dataset_name, rosbag_names, keypoint_args):
 
     for rosbag in rosbag_names:
         df, episode_ends = rosbag_to_dataframe(rosbag)
+        df["abs_time"] = df.index.astype(np.float64)
         df = add_keypoints(df, episode_ends, keypoint_args)
         dfs.append(df)
         episode_ends_lists = np.concatenate(
@@ -301,7 +303,7 @@ def build_dataset(new_dataset_name, rosbag_names, keypoint_args):
 
 def add_keypoints(df, episode_ends, keypoint_args):
     kp_headers = [f"keypoint{i}" for i in range(keypoint_args["num_keypoints"])]
-    kp_subheaders = ["x", "y", "sin_yaw", "cos_yaw"]
+    kp_subheaders = ["abs_time", "x", "y", "sin_yaw", "cos_yaw"]
     midx = pd.MultiIndex.from_product([kp_headers, kp_subheaders])
 
     keypoints_df = pd.DataFrame(index=range(df.shape[0]), columns=midx)
@@ -315,16 +317,18 @@ def add_keypoints(df, episode_ends, keypoint_args):
         num_keypoints = 0
 
         for idx in range(aug_episode_ends[ee - 1], aug_episode_ends[ee]):
+            new_df.loc[idx, "abs_time"] = (
+                new_df.loc[idx, "abs_time"].values[0] - aug_episode_ends[ee - 1]
+            )
             position = list(new_df.loc[idx, "ee_position_xy"])
             torque2 = list(new_df.loc[idx, "torque2"])
 
-            added = keypoint_manager.add_keypoint(position, torque2)
+            added = keypoint_manager.add_keypoint(
+                new_df.loc[idx, "abs_time"].values[0], position, torque2
+            )
             for kp in range(keypoint_args["num_keypoints"]):
                 new_df.loc[idx, f"keypoint{kp}"] = np.concatenate(
-                    (
-                        keypoint_manager.all_keypoints[kp][0],
-                        keypoint_manager.all_keypoints[kp][1],
-                    )
+                    keypoint_manager.all_keypoints[kp]
                 )
             if added:
                 num_keypoints += 1
@@ -336,10 +340,10 @@ def add_keypoints(df, episode_ends, keypoint_args):
 
 if __name__ == "__main__":
     rosbag_names = ["cube", "cube2"]
-    new_dataset_name = "cube_12"
+    new_dataset_name = "cube_alt"
     keypoint_args = {
         "num_keypoints": 15,
-        "min_dist": 0.0254,
+        "min_dist": 0.075,
         "threshold_force": 1.0,
     }
     build_dataset(new_dataset_name, rosbag_names, keypoint_args)

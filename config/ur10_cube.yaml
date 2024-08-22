@@ -4,8 +4,9 @@ seed: 4077
 
 controller: joints  # possible values: joints
 action_list: ['commanded_ee_position_xy']  # possible values: commanded_ee_position, commanded_ee_rotation_6d, commanded_joints
-obs_list: ['ee_position_xy', 'torque2']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d, force, torque
+obs_list: ['abs_time', 'ee_position_xy', 'torque2']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d, force, torque
 keypoints_in_obs: True
+relative_time: False
 
 use_transformer: False
 
@@ -30,8 +31,8 @@ unet_args:
   n_groups: 8
 
 train:
-  num_epochs: 5000
-  dataset_path: ./data/ur10/cube_12.zarr
+  num_epochs: 1000
+  dataset_path: ./data/ur10/cube_alt.zarr
 
 inference:
   num_inferences: 25
@@ -46,10 +47,11 @@ parameters:
 
   # Diffusion horizons
   pred_horizon: 20
-  obs_horizon: 3
+  obs_horizon: 10
+  min_obs_horizon: 5
   action_horizon: 10
 
 keypoint_args:
-  num_keypoints: 10
-  min_dist: 0.0254
+  num_keypoints: 5
+  min_dist: 0.075
   threshold_force: 1.0

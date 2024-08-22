@@ -30,6 +30,7 @@ class DiffusionPolicy:
         real_obs_dim,
         action_dim,
         obs_horizon,
+        min_obs_horizon,
         pred_horizon,
         action_horizon,
         training_data_stats,
@@ -38,16 +39,19 @@ class DiffusionPolicy:
         use_transformer=False,
         network_args=None,
         num_keypoints=0,
+        relative_time=False,
     ):
         self.obs_dim = obs_dim
         self.real_obs_dim = real_obs_dim
         self.action_dim = action_dim
         self.obs_horizon = obs_horizon
+        self.min_obs_horizon = min_obs_horizon
         self.pred_horizon = pred_horizon
         self.action_horizon = action_horizon
         self.training_data_stats = training_data_stats
         self.num_diffusion_iters = num_diffusion_iters
         self.num_keypoints = num_keypoints
+        self.relative_time = relative_time
 
         self.seed = seed
         self.set_seed(self.seed)
@@ -57,8 +61,7 @@ class DiffusionPolicy:
         if not self.use_transformer:
             self.diffusion_network = ConditionalUnet1D(
                 input_dim=action_dim,
-                global_cond_dim=real_obs_dim * obs_horizon
-                + real_obs_dim * num_keypoints,
+                global_cond_dim=real_obs_dim * obs_horizon,
                 **network_args,
             ).to(device)
         else:
@@ -66,7 +69,7 @@ class DiffusionPolicy:
                 input_dim=action_dim,
                 output_dim=action_dim,
                 horizon=pred_horizon,
-                n_obs_steps=obs_horizon + num_keypoints,
+                n_obs_steps=obs_horizon,
                 cond_dim=real_obs_dim,
                 **network_args,
             ).to(device)
@@ -122,7 +125,7 @@ class DiffusionPolicy:
                         B = norm_obs.shape[0]
 
                         # Observation as FiLM conditioning
-                        # (B, obs_horizon * real_obs_dim + num_keypoints * real_obs_dim)
+                        # (B, obs_horizon * real_obs_dim)
                         obs_cond = self.transform_obs_cond(norm_obs)
 
                         if not self.use_transformer:
@@ -362,7 +365,7 @@ class DiffusionPolicy:
 
                     # stepping env
                     next_action = self.post_process_action(action, all_actions, i)
-                    obs, _, done, _, _ = env.step(next_action)
+                    obs, _, done, _, _ = env.step(next_action, step_idx)
                     all_actions.append(next_action)
                     all_obs.append(obs)
 
@@ -441,13 +444,26 @@ class DiffusionPolicy:
 
     def transform_obs_cond(self, obs_cond):
         if self.num_keypoints > 0:
-            real_obs = obs_cond[:, :, : self.real_obs_dim]
+            real_obs = obs_cond[:, :, : self.real_obs_dim].flip(dims=(1,))
             keypoint_obs = obs_cond[:, -1, self.real_obs_dim :].reshape(
                 -1, self.num_keypoints, self.real_obs_dim
             )
 
-            trans_obs_cond = torch.concat((real_obs, keypoint_obs), axis=1)
+            for sample in range(real_obs.shape[0]):
+                num_kps = 0
+                for kp in range(self.num_keypoints):
+                    if (
+                        keypoint_obs[sample, kp, -2] == 0
+                        and keypoint_obs[sample, kp, -1] == 0
+                    ):
+                        break
+                    num_kps += 1
 
-            return trans_obs_cond
+                if num_kps > 0:
+                    real_obs[sample, -num_kps:, :] = keypoint_obs[sample, :num_kps, :]
+
+            if self.relative_time:
+                real_obs[:, :, 0] -= real_obs[:, 0, 0]
+            return real_obs
         else:
             return obs_cond

@@ -33,6 +33,7 @@ class StateDataset(torch.utils.data.Dataset):
         obs_list,
         pred_horizon,
         obs_horizon,
+        min_obs_horizon,
         action_horizon,
     ):
         # Read from zarr dataset
@@ -43,11 +44,20 @@ class StateDataset(torch.utils.data.Dataset):
             [dataset_root["data"]["action"][key][:] for key in action_list]
         )
         self.action_dim = actions.shape[1]
-        obs = np.hstack([dataset_root["data"]["obs"][key][:] for key in obs_list])
+        obs = np.hstack(
+            [
+                dataset_root["data"]["obs"][key][:].reshape(
+                    len(dataset_root["data"]["obs"][key][:]), -1
+                )
+                for key in obs_list
+            ]
+        )
         self.obs_dim = obs.shape[1]
         self.real_obs_dim = np.hstack(
             [
-                dataset_root["data"]["obs"][key][:]
+                dataset_root["data"]["obs"][key][:].reshape(
+                    len(dataset_root["data"]["obs"][key][:]), -1
+                )
                 for key in obs_list
                 if "keypoint" not in key
             ]
@@ -65,7 +75,7 @@ class StateDataset(torch.utils.data.Dataset):
         # Computes start and end of each state-action sequence and pads
         indices = create_sample_indices(
             episode_ends=episode_ends,
-            sequence_length=pred_horizon,
+            sequence_length=pred_horizon + obs_horizon - min_obs_horizon,
             # Add padding such that each timestep in the dataset is seen
             pad_before=obs_horizon - 1,
             pad_after=action_horizon - 1,
@@ -84,6 +94,7 @@ class StateDataset(torch.utils.data.Dataset):
         self.pred_horizon = pred_horizon
         self.action_horizon = action_horizon
         self.obs_horizon = obs_horizon
+        self.min_obs_horizon = min_obs_horizon
 
     def __len__(self):
         # All possible segments of the dataset
@@ -101,7 +112,7 @@ class StateDataset(torch.utils.data.Dataset):
         # Get normalized data using these indices
         nsample = sample_sequence(
             train_data=self.normalized_train_data,
-            sequence_length=self.pred_horizon,
+            sequence_length=self.pred_horizon + self.obs_horizon - self.min_obs_horizon,
             buffer_start_idx=buffer_start_idx,
             buffer_end_idx=buffer_end_idx,
             sample_start_idx=sample_start_idx,
@@ -109,12 +120,21 @@ class StateDataset(torch.utils.data.Dataset):
         )
 
         # Discard unused observations
+        nsample["action"] = nsample["action"][
+            self.obs_horizon - self.min_obs_horizon :, :
+        ]
         nsample["obs"] = nsample["obs"][: self.obs_horizon, :]
         return nsample
 
 
 def create_state_dataloader(
-    dataset_path, action_list, obs_list, pred_horizon, obs_horizon, action_horizon
+    dataset_path,
+    action_list,
+    obs_list,
+    pred_horizon,
+    obs_horizon,
+    min_obs_horizon,
+    action_horizon,
 ):
     # Create dataset from file
     dataset = StateDataset(
@@ -123,6 +143,7 @@ def create_state_dataloader(
         obs_list=obs_list,
         pred_horizon=pred_horizon,
         obs_horizon=obs_horizon,
+        min_obs_horizon=min_obs_horizon,
         action_horizon=action_horizon,
     )
     # Save training data statistics (min, max) for each dim

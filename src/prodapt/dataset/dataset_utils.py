@@ -64,11 +64,11 @@ def get_data_stats(data, key, obs_list, real_obs_dim):
     stats = {"min": np.min(data, axis=0), "max": np.max(data, axis=0)}
     if key == "obs" and "keypoint0" in obs_list:
         stats["max"][real_obs_dim:] = np.tile(
-            [stats["max"][0], stats["max"][1], 1, 1],
+            [stats["max"][0], stats["max"][1], stats["max"][2], 1, 1],
             (data.shape[-1] - real_obs_dim) // real_obs_dim,
         )
         stats["min"][real_obs_dim:] = np.tile(
-            [stats["min"][0], stats["min"][1], -1, -1],
+            [stats["min"][0], stats["min"][1], stats["min"][2], -1, -1],
             (data.shape[-1] - real_obs_dim) // real_obs_dim,
         )
     return stats
