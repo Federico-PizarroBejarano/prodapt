@@ -10,7 +10,7 @@ class KeypointManager:
 
     def add_keypoint(self, position, torque2):
         assert len(torque2) == 2
-        if not self._detect_contact(torque2):
+        if not self._detect_contact(torque2) and not self._goal_reached(position):
             return False
 
         for keypoint in self.all_keypoints:
@@ -33,9 +33,19 @@ class KeypointManager:
     def _detect_contact(self, torque2):
         return np.linalg.norm(torque2) > self.threshold_force
 
-    def _get_yaw(self, ee_torque):
-        angle = np.arctan2(ee_torque[1], ee_torque[0])
-        angle_2rep = (np.sin(angle), np.cos(angle))
+    def _goal_reached(self, position):
+        found_end = (
+            np.linalg.norm(np.squeeze(position) - np.array([1.2, 0]))
+            < self.min_dist / 2.0
+        )
+        return found_end
+
+    def _get_yaw(self, torque2):
+        if self._detect_contact(torque2):
+            angle = np.arctan2(torque2[1], torque2[0])
+            angle_2rep = (np.sin(angle), np.cos(angle))
+        else:
+            angle_2rep = (0, 0)
         return angle_2rep
 
     def reset(self):
