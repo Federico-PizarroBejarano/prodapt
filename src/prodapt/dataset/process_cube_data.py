@@ -35,6 +35,7 @@ obs_keys = [
     "force",
     "torque",
     "torque2",
+    "torque_angle",
 ]
 
 
@@ -222,6 +223,7 @@ def build_dataframe(data, mode):
             "force": [],
             "torque": [],
             "torque2": [],
+            "torque_angle": [],
         }
         for i in range(len(data)):
             message = data[i][1]
@@ -252,6 +254,11 @@ def build_dataframe(data, mode):
                     ]
                 )
             )
+            if keypoint_manager._detect_contact(all_data["torque2"][-1]):
+                angle_rep = keypoint_manager._get_yaw(all_data["torque2"][-1])
+            else:
+                angle_rep = np.array([0.0, 0.0])
+            all_data["torque_angle"].append(angle_rep)
 
         df = {}
         df["timestamp"] = pd.DataFrame(
@@ -269,6 +276,10 @@ def build_dataframe(data, mode):
         df["torque2"] = pd.DataFrame(
             all_data["torque2"],
             columns=["y", "z"],
+        )
+        df["torque_angle"] = pd.DataFrame(
+            all_data["torque_angle"],
+            columns=["sin_yaw", "cos_yaw"],
         )
 
         df = pd.concat(df, axis=1).astype(np.float64)
@@ -325,17 +336,15 @@ def add_keypoints(df, episode_ends, keypoint_args):
     new_df.loc[:, kp_headers] = 0.0
 
     aug_episode_ends = [0] + episode_ends
-    keypoint_manager = KeypointManager(**keypoint_args)
     for ee in range(1, len(aug_episode_ends)):
         keypoint_manager.reset()
         num_keypoints = 0
 
         for idx in range(aug_episode_ends[ee - 1], aug_episode_ends[ee]):
-            position = list(new_df.loc[idx, "ee_position"])[:2]
-            force = list(new_df.loc[idx, "force"])
-            torque = list(new_df.loc[idx, "torque"])
+            position = list(new_df.loc[idx, "ee_position_xy"])
+            torque2 = list(new_df.loc[idx, "torque2"])
 
-            added = keypoint_manager.add_keypoint(position, force + torque)
+            added = keypoint_manager.add_keypoint(position, torque2)
             for kp in range(keypoint_args["num_keypoints"]):
                 new_df.loc[idx, f"keypoint{kp}"] = np.concatenate(
                     (
@@ -359,4 +368,5 @@ if __name__ == "__main__":
         "min_dist": 0.07,
         "threshold_force": 1.0,
     }
+    keypoint_manager = KeypointManager(**keypoint_args)
     build_dataset(new_dataset_name, rosbag_names, keypoint_args)

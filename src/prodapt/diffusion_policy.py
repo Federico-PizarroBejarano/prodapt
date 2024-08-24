@@ -196,7 +196,7 @@ class DiffusionPolicy:
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
         close = False
-        if env.name == "ur10" and env.simulator == "isaacsim":
+        if env.name == "ur10" and env.interface == "isaacsim":
             # Socket to send environment reset requests
             context = zmq.Context()
             self.sock = context.socket(zmq.REQ)
@@ -205,7 +205,7 @@ class DiffusionPolicy:
         inf_id = 0
         while True:
             print(f"Starting Inference #{inf_id+1}")
-            if env.name == "ur10" and env.simulator == "isaacsim":
+            if env.name == "ur10" and env.interface == "isaacsim":
                 self.sock.send(bytes("reset", "UTF-8"))
                 while True:
                     try:
@@ -226,7 +226,7 @@ class DiffusionPolicy:
                 total_results[key].append(results[key])
             inf_id += 1
 
-        if env.name == "ur10" and env.simulator == "isaacsim":
+        if env.name == "ur10" and env.interface == "isaacsim":
             # self.sock.send(bytes("close", "UTF-8"))
             self.sock.close()
 

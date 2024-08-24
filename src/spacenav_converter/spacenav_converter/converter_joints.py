@@ -24,18 +24,18 @@ class ConverterToJoints(Node):
     def __init__(self):
         super().__init__("converter_to_joints")
 
-        self.declare_parameter(name="simulator", value="ursim")
-        self.simulator = (
-            self.get_parameter("simulator").get_parameter_value().string_value
+        self.declare_parameter(name="interface", value="ur-driver")
+        self.interface = (
+            self.get_parameter("interface").get_parameter_value().string_value
         )
 
-        if self.simulator == "ursim":
+        if self.interface == "ur-driver":
             self.publisher = self.create_publisher(
                 JointTrajectory,
                 "/scaled_joint_trajectory_controller/joint_trajectory",
                 10,
             )
-        if self.simulator == "isaacsim":
+        if self.interface == "isaacsim":
             self.publisher = self.create_publisher(JointState, "/joint_command", 10)
 
         self.spacenav_subscription = self.create_subscription(
@@ -112,14 +112,14 @@ class ConverterToJoints(Node):
             header.stamp = self.get_clock().now().to_msg()
             header.frame_id = ""
 
-            if self.simulator == "ursim":
+            if self.interface == "ur-driver":
                 joint_command = JointTrajectory()
                 joint_command.header = header
                 joint_command.joint_names = self.ordered_link_names
                 joint_command.points = [JointTrajectoryPoint()]
                 joint_command.points[0].positions = [float(elem) for elem in best_IK]
                 joint_command.points[0].time_from_start = Duration(seconds=0.1).to_msg()
-            elif self.simulator == "isaacsim":
+            elif self.interface == "isaacsim":
                 joint_command = JointState()
                 joint_command.header = header
                 joint_command.name = self.ordered_link_names

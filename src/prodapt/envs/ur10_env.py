@@ -13,10 +13,10 @@ from prodapt.envs.ur10_ros_interface.joints_publisher import JointsPublisher
 
 
 class UR10Env(gym.Env):
-    def __init__(self, controller, action_list, obs_list, simulator, keypoint_args):
+    def __init__(self, controller, action_list, obs_list, interface, keypoint_args):
         rclpy.init()
         self.name = "ur10"
-        self.simulator = simulator
+        self.interface = interface
         self.joint_state_subscriber = JointStatesSubscriber(obs_list)
         self.force_subscriber = ForceSubscriber(obs_list)
 
@@ -27,7 +27,7 @@ class UR10Env(gym.Env):
             self.base_command = [0.4, 0, 0.055, 1, 0, 0, 0, -1, 0]
             self.command_publisher = JointsPublisher(
                 action_list=action_list,
-                simulator=simulator,
+                interface=interface,
                 base_command=self.base_command,
             )
 
@@ -113,7 +113,7 @@ class UR10Env(gym.Env):
         if self.keypoints_in_obs:
             kp_added = self.keypoint_manager.add_keypoint(
                 self.joint_state_subscriber.last_obs,
-                self.force_subscriber.last_full_msg,
+                self.force_subscriber.last_obs,
             )
             if kp_added:
                 print(np.round(self.keypoint_manager.all_keypoints[0], 2))

@@ -69,7 +69,7 @@ def main_app(cfg: DictConfig) -> None:
                 controller=cfg.controller,
                 action_list=cfg.action_list,
                 obs_list=cfg.obs_list + keypoint_obs,
-                simulator=cfg.inference.simulator,
+                interface=cfg.inference.interface,
                 keypoint_args=None if not cfg.keypoints_in_obs else cfg.keypoint_args,
             )
         else:
