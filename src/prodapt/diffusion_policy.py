@@ -51,7 +51,7 @@ class DiffusionPolicy:
         self.num_keypoints = num_keypoints
 
         self.seed = seed
-        self.set_seed(self.seed)
+        # self.set_seed(self.seed)
 
         self.use_transformer = use_transformer
 
@@ -258,7 +258,7 @@ class DiffusionPolicy:
         all_obs = [obs_deque[0]]
 
         prev_action_traj = None
-        warmstart_div = 5
+        warmstart_div = 3
 
         start_time = time.time()
         prev_time = start_time
@@ -284,6 +284,8 @@ class DiffusionPolicy:
 
                     if not self.use_transformer:
                         obs_cond = obs_cond.flatten(start_dim=1)
+
+                    obs_cond = obs_cond + torch.randn(obs_cond.shape, device=obs_cond.device)*0.01
 
                     # initialize action from Guassian noise
                     noise = torch.randn(
@@ -360,8 +362,8 @@ class DiffusionPolicy:
                     prev_time = time.time()
 
                     # stepping env
-                    next_action = self.post_process_action(action, all_actions, i, obs, env)
-                    obs, _, done, _, _ = env.step(next_action)
+                    next_action, bypass_acc_limit = self.post_process_action(action, all_actions, i, obs, env)
+                    obs, _, done, _, _ = env.step(next_action, bypass_acc_limit)
                     all_actions.append(next_action)
                     all_obs.append(obs)
 
@@ -433,6 +435,7 @@ class DiffusionPolicy:
         #     torch.backends.cudnn.benchmark = False
 
     def post_process_action(self, action, all_actions, iter, obs, env):
+        bypass_acc_limit = False
         if len(all_actions) == 0:
             next_action = action[iter]
         else:
@@ -440,6 +443,7 @@ class DiffusionPolicy:
 
             # Prevent high torque
             if env.keypoint_manager._detect_contact(obs[2:4]):
+                bypass_acc_limit = True
                 commanded_diff = next_action - obs[:2]
                 torque = np.array(obs[2:4])
                 torque[1] *= -1
@@ -449,7 +453,7 @@ class DiffusionPolicy:
                     next_action = obs[:2] + commanded_diff
                 next_action += (torque/np.linalg.norm(torque))*0.01
 
-        return next_action
+        return next_action, bypass_acc_limit
 
     def transform_obs_cond(self, obs_cond):
         if self.num_keypoints > 0:

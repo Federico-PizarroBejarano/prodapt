@@ -5,7 +5,7 @@ class KeypointManager:
     def __init__(self, num_keypoints, min_dist, threshold_force):
         self.num_keypoints = num_keypoints
         self.min_dist = min_dist
-        self.threshold_force = threshold_force
+        self.threshold_force = threshold_force * 0.5
         self.reset()
 
     def add_keypoint(self, position, torque2):

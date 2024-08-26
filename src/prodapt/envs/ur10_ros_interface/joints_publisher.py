@@ -47,7 +47,7 @@ class JointsPublisher(Node):
 
         self.snap_speedup = 2.0
 
-    def send_action(self, action, last_joint_pos, duration=0, z_offset=0.0):
+    def send_action(self, action, last_joint_pos, z_offset=0.0, bypass_acc_limit=False):
         applied_action = self.base_command.copy()
         if "commanded_ee_position" in self.action_list:
             applied_action[:3] = action[:3]
@@ -68,9 +68,10 @@ class JointsPublisher(Node):
             joint_command.data = list(joint_vels)
 
             # Limit acceleration
-            vel_diff = np.clip(joint_vels - self.prev_velocity, -0.025, 0.025)
-            joint_command.data = list(self.prev_velocity + vel_diff)
-            self.prev_velocity += vel_diff
+            if not bypass_acc_limit:
+                vel_diff = np.clip(joint_vels - self.prev_velocity, -0.025, 0.025)
+                joint_command.data = list(self.prev_velocity + vel_diff)
+                self.prev_velocity += vel_diff
         elif self.interface == "isaacsim":
             header = Header()
             header.stamp = self.get_clock().now().to_msg()

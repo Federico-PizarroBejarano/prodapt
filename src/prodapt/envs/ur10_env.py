@@ -19,7 +19,7 @@ class UR10Env(gym.Env):
         self.joint_state_subscriber = JointStatesSubscriber(obs_list)
         self.force_subscriber = ForceSubscriber(obs_list)
 
-        x, y, z = 0.6, 0.0, 0.3
+        x, y, z = 0.7, 0.0, 0.3
 
         if controller == "movel":
             self.base_command = [x, y, z, 3.14, 0, 0]
@@ -96,12 +96,12 @@ class UR10Env(gym.Env):
         obs, info = self._get_latest_observation()
         return obs, info
 
-    def step(self, action):
+    def step(self, action, bypass_acc_limit):
         if self.last_joint_pos is None:
             self._get_latest_observation()
         action = self._limit_action(action)
         self.command_publisher.send_action(
-            action=action, last_joint_pos=self.last_joint_pos
+            action=action, last_joint_pos=self.last_joint_pos, bypass_acc_limit=bypass_acc_limit
         )
         obs, info = self._get_latest_observation()
 

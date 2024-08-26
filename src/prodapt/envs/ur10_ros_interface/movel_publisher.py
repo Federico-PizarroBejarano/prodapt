@@ -1,5 +1,3 @@
-import time
-
 from rclpy.node import Node
 from std_msgs.msg import String
 
@@ -16,7 +14,7 @@ class MovelPublisher(Node):
             String, "/urscript_interface/script_command", 10
         )
 
-    def send_action(self, action, duration=0, **kwargs):
+    def send_action(self, action, **kwargs):
         applied_action = self.base_command.copy()
         if "commanded_ee_position" in self.action_list:
             applied_action[:3] = action[:3]
@@ -37,4 +35,3 @@ end""".format(
         )
 
         self.publisher.publish(urscript_msg)
-        time.sleep(duration)
