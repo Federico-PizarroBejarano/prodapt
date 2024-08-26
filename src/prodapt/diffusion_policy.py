@@ -192,7 +192,7 @@ class DiffusionPolicy:
         warmstart=False,
     ):
         env = env
-        total_results = {"iters": [], "done": [], "time": []}
+        total_results = {"iters": [], "done": [], "time": [], "diff_times": []}
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
         close = False
@@ -259,7 +259,7 @@ class DiffusionPolicy:
         all_obs = [obs_deque[0]]
 
         prev_action_traj = None
-        warmstart_div = 5
+        warmstart_div = 3
 
         start_time = time.time()
         prev_time = start_time
@@ -285,6 +285,11 @@ class DiffusionPolicy:
 
                     if not self.use_transformer:
                         obs_cond = obs_cond.flatten(start_dim=1)
+
+                    obs_cond = (
+                        obs_cond
+                        + torch.randn(obs_cond.shape, device=obs_cond.device) * 0.01
+                    )
 
                     # initialize action from Guassian noise
                     noise = torch.randn(

@@ -24,7 +24,7 @@ def generate_random_cubes(world, num_cubes, y_span=0.6):
 
 
 def generate_cube_setup(world, setup_name, pos_noise=0.0, orient_noise=0.0):
-    x_offset = 0.2
+    x_offset = 0.3
     setups = {
         "no-cubes": [],
         "1-cube-flat": [[-0.575, 0, 0]],
