@@ -58,9 +58,7 @@ class UR10Env(gym.Env):
         while np.linalg.norm(goal_joints - self.last_joint_pos) > 0.01:
             self._get_latest_observation()
             goal_joints = self.command_publisher.send_action(
-                action=action,
-                last_joint_pos=self.last_joint_pos,
-                z_offset=z_offset
+                action=action, last_joint_pos=self.last_joint_pos, z_offset=z_offset
             )
         self.command_publisher.send_zeros()
 
@@ -68,8 +66,7 @@ class UR10Env(gym.Env):
         self._get_latest_observation()
 
         self.position_control_loop(
-            action=self.base_command,
-            last_joint_pos=self.reset_joint_pos
+            action=self.base_command, last_joint_pos=self.reset_joint_pos
         )
 
         if self.keypoints_in_obs:
@@ -101,7 +98,9 @@ class UR10Env(gym.Env):
             self._get_latest_observation()
         action = self._limit_action(action)
         self.command_publisher.send_action(
-            action=action, last_joint_pos=self.last_joint_pos, bypass_acc_limit=bypass_acc_limit
+            action=action,
+            last_joint_pos=self.last_joint_pos,
+            bypass_acc_limit=bypass_acc_limit,
         )
         obs, info = self._get_latest_observation()
 

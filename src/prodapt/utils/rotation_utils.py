@@ -94,6 +94,7 @@ def normalize_axis_angle(axis_angle):
         axis_angle = axis_angle / angle * new_angle
         return axis_angle
 
+
 def real_exp_transform(position, inverse=False):
     new_pos = position.copy()
     if not inverse:

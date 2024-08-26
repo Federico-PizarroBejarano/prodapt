@@ -24,7 +24,7 @@ class KeypointManager:
         return True
 
     def _queue_keypoint(self, position, torque2):
-        print('ADDING KEYPOINT!!', np.round(position,2), np.round(torque2,2))
+        print("ADDING KEYPOINT!!", np.round(position, 2), np.round(torque2, 2))
         self.all_keypoints[1:] = self.all_keypoints[:-1]
 
         angle_2rep = self._get_yaw(torque2)

@@ -193,7 +193,7 @@ class DiffusionPolicy:
         warmstart=False,
     ):
         env = env
-        total_results = {"iters": [], "done": [], "time": []}
+        total_results = {"iters": [], "done": [], "time": [], "diff_times": []}
         output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
         close = False
@@ -285,7 +285,10 @@ class DiffusionPolicy:
                     if not self.use_transformer:
                         obs_cond = obs_cond.flatten(start_dim=1)
 
-                    obs_cond = obs_cond + torch.randn(obs_cond.shape, device=obs_cond.device)*0.01
+                    obs_cond = (
+                        obs_cond
+                        + torch.randn(obs_cond.shape, device=obs_cond.device) * 0.01
+                    )
 
                     # initialize action from Guassian noise
                     noise = torch.randn(
@@ -362,7 +365,9 @@ class DiffusionPolicy:
                     prev_time = time.time()
 
                     # stepping env
-                    next_action, bypass_acc_limit = self.post_process_action(action, all_actions, i, obs, env)
+                    next_action, bypass_acc_limit = self.post_process_action(
+                        action, all_actions, i, obs, env
+                    )
                     obs, _, done, _, _ = env.step(next_action, bypass_acc_limit)
                     all_actions.append(next_action)
                     all_obs.append(obs)
@@ -447,11 +452,15 @@ class DiffusionPolicy:
                 commanded_diff = next_action - obs[:2]
                 torque = np.array(obs[2:4])
                 torque[1] *= -1
-                move_comp = (np.dot(commanded_diff, torque))/(np.dot(torque, torque))*np.array(torque)
+                move_comp = (
+                    (np.dot(commanded_diff, torque))
+                    / (np.dot(torque, torque))
+                    * np.array(torque)
+                )
                 if np.dot(move_comp, torque) < 0:
                     commanded_diff -= move_comp
                     next_action = obs[:2] + commanded_diff
-                next_action += (torque/np.linalg.norm(torque))*0.01
+                next_action += (torque / np.linalg.norm(torque)) * 0.01
 
         return next_action, bypass_acc_limit
 

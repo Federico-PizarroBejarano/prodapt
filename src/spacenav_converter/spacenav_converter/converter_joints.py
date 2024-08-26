@@ -91,7 +91,9 @@ class ConverterToJoints(Node):
             best_IK = choose_best_ik(IK, self.last_joint_pos)
 
             command = Float64MultiArray()
-            command.data = [(float(best_IK[i]) - self.last_joint_pos[i]) for i in range(6)]
+            command.data = [
+                (float(best_IK[i]) - self.last_joint_pos[i]) for i in range(6)
+            ]
 
             self.publisher.publish(command)
 

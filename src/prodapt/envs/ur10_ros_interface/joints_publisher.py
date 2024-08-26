@@ -14,7 +14,7 @@ from prodapt.utils.rotation_utils import (
     matrix_to_quaternion,
     rotation_6d_to_matrix,
     real_exp_transform,
-    bound_angles
+    bound_angles,
 )
 
 
@@ -32,7 +32,7 @@ class JointsPublisher(Node):
                 "/forward_velocity_controller/commands",
                 10,
             )
-            self.prev_velocity = [0.0]*6
+            self.prev_velocity = [0.0] * 6
         if self.interface == "isaacsim":
             self.publisher = self.create_publisher(JointState, "/joint_command", 10)
 
@@ -64,7 +64,7 @@ class JointsPublisher(Node):
         if self.interface == "ur-driver":
             joint_command = Float64MultiArray()
             joint_vels = bound_angles(best_IK - last_joint_pos)
-            joint_vels = np.clip(joint_vels*self.snap_speedup, -0.05, 0.05)
+            joint_vels = np.clip(joint_vels * self.snap_speedup, -0.05, 0.05)
             joint_command.data = list(joint_vels)
 
             # Limit acceleration
@@ -87,6 +87,6 @@ class JointsPublisher(Node):
     def send_zeros(self):
         if self.interface == "ur-driver":
             joint_command = Float64MultiArray()
-            joint_command.data = [0.0]*6
+            joint_command.data = [0.0] * 6
 
             self.publisher.publish(joint_command)

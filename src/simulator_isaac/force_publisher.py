@@ -9,7 +9,9 @@ class ForcePublisher(Node):
     def __init__(self):
         rclpy.init()
         super().__init__("force_publisher")
-        self.publisher = self.create_publisher(WrenchStamped, "/force_torque_sensor_broadcaster/wrench", 10)
+        self.publisher = self.create_publisher(
+            WrenchStamped, "/force_torque_sensor_broadcaster/wrench", 10
+        )
 
     def publish_force(self, force_torque):
         header = Header()

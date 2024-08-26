@@ -10,7 +10,10 @@ class ForceSubscriber(Node):
         super().__init__("force_subscriber")
         self.obs_list = obs_list
         self.subscription = self.create_subscription(
-            WrenchStamped, "/force_torque_sensor_broadcaster/wrench", self.listener_callback, 10
+            WrenchStamped,
+            "/force_torque_sensor_broadcaster/wrench",
+            self.listener_callback,
+            10,
         )
 
         self.last_obs = None
@@ -27,6 +30,10 @@ class ForceSubscriber(Node):
                 [msg.wrench.torque.x, msg.wrench.torque.y, msg.wrench.torque.z]
             )
         if "torque2" in self.obs_list:
-            self.last_obs.append(real_exp_transform([msg.wrench.torque.x, msg.wrench.torque.y], inverse=True))
+            self.last_obs.append(
+                real_exp_transform(
+                    [msg.wrench.torque.x, msg.wrench.torque.y], inverse=True
+                )
+            )
 
         self.last_obs = np.concatenate(self.last_obs)
