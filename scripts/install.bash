@@ -16,5 +16,15 @@ sudo apt-get -y install spacenavd
 sudo apt-get -y install ros-${ROS_DISTRO}-spacenav
 sudo apt-get -y install ros-${ROS_DISTRO}-tf-transformations
 
-# Install rosdep
+# ROS2 Control
+sudo apt-get update
+sudo apt-get -y install ros-${ROS_DISTRO}-ros2-control
+sudo apt-get -y install ros-${ROS_DISTRO}-ros2-controllers
+
+# Install UR drivers and rosdep
+apt-get -y install ros-${ROS_DISTRO}-ur
 sudo apt-get -y install python3-rosdep
+
+# Clean
+sudo apt-get autoremove -y
+sudo apt-get autoclean -y

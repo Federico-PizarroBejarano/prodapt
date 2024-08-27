@@ -20,11 +20,13 @@ class UR10Env(gym.Env):
         self.joint_state_subscriber = JointStatesSubscriber(obs_list)
         self.force_subscriber = ForceSubscriber(obs_list)
 
+        x, y, z = 0.7, 0.0, 0.3
+
         if controller == "movel":
-            self.base_command = [0.7, 0, 0.125, 3.14, 0, 0]
+            self.base_command = [x, y, z, 3.14, 0, 0]
             self.command_publisher = MovelPublisher(action_list=action_list)
         elif controller == "joints":
-            self.base_command = [0.7, 0, 0.125, 1, 0, 0, 0, -1, 0]
+            self.base_command = [x, y, z, 1, 0, 0, 0, -1, 0]
             self.command_publisher = JointsPublisher(
                 action_list=action_list,
                 interface=interface,

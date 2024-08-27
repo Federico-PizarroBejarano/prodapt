@@ -33,8 +33,8 @@ class KeypointManager:
     def _detect_contact(self, torque2):
         return np.linalg.norm(torque2) > self.threshold_force
 
-    def _get_yaw(self, ee_torque):
-        angle = np.arctan2(ee_torque[1], ee_torque[0])
+    def _get_yaw(self, torque2):
+        angle = np.arctan2(torque2[1], torque2[0])
         angle_2rep = (np.sin(angle), np.cos(angle))
         return angle_2rep
 

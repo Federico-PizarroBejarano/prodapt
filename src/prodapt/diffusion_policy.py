@@ -202,8 +202,7 @@ class DiffusionPolicy:
             self.sock = context.socket(zmq.REQ)
             self.sock.connect("tcp://localhost:5555")
 
-        inf_id = 0
-        while True:
+        for inf_id in range(num_inferences):
             print(f"Starting Inference #{inf_id+1}")
             if env.name == "ur10" and env.interface == "isaacsim":
                 self.sock.send(bytes("reset", "UTF-8"))
@@ -224,7 +223,6 @@ class DiffusionPolicy:
             )
             for key in total_results.keys():
                 total_results[key].append(results[key])
-            inf_id += 1
 
         if env.name == "ur10" and env.interface == "isaacsim":
             # self.sock.send(bytes("close", "UTF-8"))

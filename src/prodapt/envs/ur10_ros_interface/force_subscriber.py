@@ -8,7 +8,10 @@ class ForceSubscriber(Node):
         super().__init__("force_subscriber")
         self.obs_list = obs_list
         self.subscription = self.create_subscription(
-            WrenchStamped, "/force_torque", self.listener_callback, 10
+            WrenchStamped,
+            "/force_torque_sensor_broadcaster/wrench",
+            self.listener_callback,
+            10,
         )
 
         self.last_obs = None
