@@ -2,9 +2,9 @@ name: ur10
 mode: inference
 seed: 4077
 
-controller: joints  # possible values: joints
-action_list: ['commanded_ee_position_xy']  # possible values: commanded_ee_position, commanded_ee_rotation_6d, commanded_joints
-obs_list: ['ee_position_xy', 'torque2']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d, force, torque
+controller: joints  # possible values: joints, movel
+action_list: [commanded_ee_position_xy]  # possible values: commanded_ee_position, commanded_ee_position_xy, commanded_ee_rotation_6d, commanded_joints
+obs_list: [ee_position_xy, torque2]  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_position_xy, ee_rotation_6d, force, torque, torque2, torque_angle
 keypoints_in_obs: True
 
 use_transformer: False
@@ -51,5 +51,5 @@ parameters:
 
 keypoint_args:
   num_keypoints: 10
-  min_dist: 0.0254
+  min_dist: 0.05
   threshold_force: 1.0

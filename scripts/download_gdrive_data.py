@@ -1,7 +1,3 @@
-# take in command line arguments for output path and file id
-# download file from google drive and save to output path
-# usage: python3 download_gdrive_data.py --file_id <file_id> --output_path <output_path>
-
 import argparse
 import os
 import gdown

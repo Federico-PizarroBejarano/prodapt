@@ -35,10 +35,10 @@ authors = [
 maintainers = [
   {name = "Federico Pizarro Bejarano", email = "bejarano@jpl.nasa.gov"}
 ]
-description = "A package for proprioceptive adaptation methods for robotics manipulation"
+description = "A package for proprioceptive adaptation using diffusion for robotics manipulation"
 readme = "README.md"
 license = {file = "LICENSE.txt"}
-keywords = ["robotics", "manipulation", "adaptation", "proprioception"]
+keywords = ["robotics", "manipulation", "adaptation", "proprioception", "diffusion"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python"

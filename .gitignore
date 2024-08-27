@@ -10,5 +10,6 @@ build/
 log/
 install/
 
+# Miscellaneous
 *__pycache__
 .vscode/

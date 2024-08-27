@@ -3,13 +3,13 @@ mode: inference
 seed: 4077
 
 controller: joints  # possible values: movel, joints
-action_list: ['commanded_ee_position', 'commanded_ee_rotation_6d']  # possible values: position, rotation_6d
-obs_list: ['ee_position', 'ee_rotation_6d']  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d
+action_list: [commanded_ee_position, commanded_ee_rotation_6d]  # possible values: commanded_ee_position, commanded_ee_rotation_6d
+obs_list: [ee_position, ee_rotation_6d]  # possible values: joint_pos, joint_vel, joint_eff, ee_position, ee_rotation_6d
 keypoints_in_obs: False
 
 use_transformer: False
 
-model_name: "ur10_heart"
+model_name: ur10_heart
 
 transformer_args:
   n_layer: 8
@@ -27,7 +27,7 @@ unet_args: {}  # use defaults
 
 train:
   num_epochs: 100
-  dataset_path: "./data/ur10/ur10_heart.zarr"
+  dataset_path: ./data/ur10/ur10_heart.zarr
 
 inference:
   num_inferences: 2
