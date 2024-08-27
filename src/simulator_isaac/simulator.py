@@ -1,11 +1,12 @@
 import numpy as np
+import zmq
 
 import omni
 from omni.isaac.core import World
 import omni.graph.core as og
 from omni.isaac.core.utils.prims import get_prim_at_path, get_prim_children
 
-from simulator_isaac.cube_bypass import generate_cubes
+from simulator_isaac.cube_bypass import generate_random_cubes, generate_cube_setup
 from simulator_isaac.force_publisher import ForcePublisher
 
 
@@ -16,7 +17,9 @@ class Simulator:
 
         self.force_publisher = ForcePublisher()
 
-        self.world = World(stage_units_in_meters=1.0)
+        self.world = World(
+            stage_units_in_meters=1.0, physics_dt=1.0 / 200.0, rendering_dt=1.0 / 50.0
+        )
         physics_context = self.world.get_physics_context()
         physics_context.enable_ccd(True)
         self.world.scene.add_default_ground_plane()
@@ -107,22 +110,64 @@ class Simulator:
     def on_physics_step(self, step_size) -> None:
         og.Controller.evaluate_sync(self.graph)
 
-    def run(self):
+    def run(self, randomize_cubes):
         stage = omni.usd.get_context().get_stage()
-        tool0_prim = get_prim_at_path("/World/UR10e/tool0")
         world_prim = get_prim_at_path("/World")
 
+        # Socket to receive reset requests
+        context = zmq.Context()
+        sock = context.socket(zmq.REP)
+        sock.bind("tcp://*:5555")
+
+        close = False
+        setups = [
+            "no-cubes",
+            "no-cubes",
+            "1-cube-flat",
+            # "1-cube-slanted",
+            # "2-cube-wall",
+            "3-cube-wall",
+            # "pyramid",
+            # "1-sided-bucket",
+            "2-sided-bucket",
+            # "random",
+            # "random_4",
+            # "random_5",
+        ]
+        setup_num = 0
+        trial_num = 0
+        num_trials = 10
+
         while self.simulation_app.is_running():
-            generate_cubes(self.world, 3)
+            if randomize_cubes:
+                print("Starting setup")
+                generate_random_cubes(self.world, 3)
+            else:
+                if close:
+                    close = False
+                    trial_num = 0
+                    setup_num = 0
+
+                print(f"Starting setup: {setups[setup_num]}, trial #{trial_num+1}")
+                generate_cube_setup(
+                    self.world,
+                    setups[setup_num],
+                    pos_noise=0.01,
+                    orient_noise=0.01,
+                )
+                trial_num += 1
+                if trial_num >= num_trials or setup_num == 0:
+                    setup_num += 1
+                    trial_num = 0
+
             self.world.step(render=True)
             self.robot.pos_reset()
             startup_counter = 0
             self.disconnect_controller()
-            matrix = omni.usd.get_world_transform_matrix(tool0_prim)
-            translate = matrix.ExtractTranslation()
             detection = False
+            reset = False
 
-            while np.linalg.norm(translate[:2] - np.array([-1.2, 0])) > 0.025:
+            while not reset:
                 startup_counter += 1
                 self.world.step(render=True)
 
@@ -139,17 +184,29 @@ class Simulator:
                 if prev_detection and not detection:
                     print("-------")
 
-                matrix = omni.usd.get_world_transform_matrix(tool0_prim)
-                translate = matrix.ExtractTranslation()
-
-                if startup_counter == 10:
+                if startup_counter == 20:
                     self.connect_controller()
-                    print("Starting up control!!")
+
+                try:
+                    message = sock.recv(flags=zmq.NOBLOCK).decode()
+                    if message == "reset":
+                        reset = True
+                        if setup_num == len(setups):
+                            sock.send(b"close")
+                            close = True
+                        else:
+                            sock.send(b"reset")
+                    elif message == "close":
+                        close = True
+                        reset = True
+                except:
+                    pass
 
             for prim in get_prim_children(world_prim):
                 if "Cube" in prim.GetName():
                     stage.RemovePrim(f"/World/{prim.GetName()}")
 
+        sock.close()
         self.world.stop()
         self.simulation_app.close()
 
