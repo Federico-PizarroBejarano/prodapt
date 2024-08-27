@@ -183,13 +183,7 @@ class DiffusionPolicy:
         plt.savefig(f"./checkpoints/{model_name}/losses.png")
 
     def evaluate(
-        self,
-        env,
-        num_inferences,
-        max_steps,
-        model_name,
-        render=False,
-        warmstart=False,
+        self, env, num_inferences, max_steps, model_name, render=False, warmstart=False
     ):
         env = env
         total_results = {"iters": [], "done": [], "time": [], "diff_times": []}

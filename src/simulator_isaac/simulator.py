@@ -40,10 +40,7 @@ class Simulator:
                     ("PublishClock", "omni.isaac.ros2_bridge.ROS2PublishClock"),
                 ],
                 self.graph_keys.CONNECT: [
-                    (
-                        "SimTime.outputs:simulationTime",
-                        "PublishClock.inputs:timeStamp",
-                    )
+                    ("SimTime.outputs:simulationTime", "PublishClock.inputs:timeStamp")
                 ],
             },
         )
@@ -60,10 +57,7 @@ class Simulator:
                         "ArticulationController",
                         "omni.isaac.core_nodes.IsaacArticulationController",
                     ),
-                    (
-                        "PubJointStates",
-                        "omni.isaac.ros2_bridge.ROS2PublishJointState",
-                    ),
+                    ("PubJointStates", "omni.isaac.ros2_bridge.ROS2PublishJointState"),
                     (
                         "SubJointStates",
                         "omni.isaac.ros2_bridge.ROS2SubscribeJointState",
@@ -150,10 +144,7 @@ class Simulator:
 
                 print(f"Starting setup: {setups[setup_num]}, trial #{trial_num+1}")
                 generate_cube_setup(
-                    self.world,
-                    setups[setup_num],
-                    pos_noise=0.01,
-                    orient_noise=0.01,
+                    self.world, setups[setup_num], pos_noise=0.01, orient_noise=0.01
                 )
                 trial_num += 1
                 if trial_num >= num_trials or setup_num == 0:

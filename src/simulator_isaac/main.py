@@ -16,9 +16,7 @@ def main(args):
     # Setting up our simulation
     simulator = Simulator(simulation_app)
 
-    simulator.add_robot(
-        UR10e(),
-    )
+    simulator.add_robot(UR10e())
 
     simulator.setup()
     simulator.world.reset()

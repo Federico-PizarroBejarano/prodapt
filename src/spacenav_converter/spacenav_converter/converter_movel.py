@@ -52,7 +52,7 @@ class ConverterToMovel(Node):
             ]
             quat_delta = quaternion_multiply(angular_vel_delta, quat_curr)
             quat_new = [sum(i) for i in zip(quat_curr, quat_delta)]
-            magnitude = sum([i**2 for i in quat_new]) ** 0.5
+            magnitude = sum([i ** 2 for i in quat_new]) ** 0.5
             quat_new_normalized = [rot / magnitude for rot in quat_new]
 
             # URScript only accepts rotation commands in axis-angle format

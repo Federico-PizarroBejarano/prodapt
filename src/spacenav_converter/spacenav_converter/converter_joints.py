@@ -13,10 +13,7 @@ from tf_transformations import quaternion_from_euler, quaternion_multiply
 
 import numpy as np
 
-from prodapt.utils.kinematics_utils import (
-    inverse_kinematics,
-    choose_best_ik,
-)
+from prodapt.utils.kinematics_utils import inverse_kinematics, choose_best_ik
 from prodapt.utils.rotation_utils import get_T_matrix, bound_angles
 
 

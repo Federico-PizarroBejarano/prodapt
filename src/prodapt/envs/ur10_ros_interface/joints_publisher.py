@@ -5,10 +5,7 @@ from std_msgs.msg import Header
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from sensor_msgs.msg import JointState
 
-from prodapt.utils.kinematics_utils import (
-    inverse_kinematics,
-    choose_best_ik,
-)
+from prodapt.utils.kinematics_utils import inverse_kinematics, choose_best_ik
 from prodapt.utils.rotation_utils import (
     get_T_matrix,
     matrix_to_quaternion,

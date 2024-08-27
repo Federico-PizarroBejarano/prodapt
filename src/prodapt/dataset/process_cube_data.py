@@ -125,33 +125,24 @@ def build_dataframe(data, mode):
             all_data["ee_rotation_6d"].append(rotation_6d)
 
         df = {}
-        df["timestamp"] = pd.DataFrame(
-            all_data["timestamp"],
-            columns=["timestamp"],
-        )
+        df["timestamp"] = pd.DataFrame(all_data["timestamp"], columns=["timestamp"])
         df["joint_pos"] = pd.DataFrame(
-            all_data["joint_pos"],
-            columns=["x1", "x2", "x3", "x4", "x5", "x6"],
+            all_data["joint_pos"], columns=["x1", "x2", "x3", "x4", "x5", "x6"]
         )
         df["joint_vel"] = pd.DataFrame(
-            all_data["joint_vel"],
-            columns=["v1", "v2", "v3", "v4", "v5", "v6"],
+            all_data["joint_vel"], columns=["v1", "v2", "v3", "v4", "v5", "v6"]
         )
         df["joint_eff"] = pd.DataFrame(
-            all_data["joint_eff"],
-            columns=["e1", "e2", "e3", "e4", "e5", "e6"],
+            all_data["joint_eff"], columns=["e1", "e2", "e3", "e4", "e5", "e6"]
         )
         df["ee_position"] = pd.DataFrame(
-            all_data["ee_position"],
-            columns=["x", "y", "z"],
+            all_data["ee_position"], columns=["x", "y", "z"]
         )
         df["ee_position_xy"] = pd.DataFrame(
-            all_data["ee_position_xy"],
-            columns=["x", "y"],
+            all_data["ee_position_xy"], columns=["x", "y"]
         )
         df["ee_rotation_6d"] = pd.DataFrame(
-            all_data["ee_rotation_6d"],
-            columns=["a1", "a2", "a3", "b1", "b2", "b3"],
+            all_data["ee_rotation_6d"], columns=["a1", "a2", "a3", "b1", "b2", "b3"]
         )
 
         df = pd.concat(df, axis=1).astype(np.float64)
@@ -179,21 +170,16 @@ def build_dataframe(data, mode):
             all_data["commanded_ee_rotation_6d"].append(rotation_6d)
 
         df = {}
-        df["timestamp"] = pd.DataFrame(
-            all_data["timestamp"],
-            columns=["timestamp"],
-        )
+        df["timestamp"] = pd.DataFrame(all_data["timestamp"], columns=["timestamp"])
         df["commanded_joint_pos"] = pd.DataFrame(
             all_data["commanded_joint_pos"],
             columns=["x1", "x2", "x3", "x4", "x5", "x6"],
         )
         df["commanded_ee_position"] = pd.DataFrame(
-            all_data["commanded_ee_position"],
-            columns=["x", "y", "z"],
+            all_data["commanded_ee_position"], columns=["x", "y", "z"]
         )
         df["commanded_ee_position_xy"] = pd.DataFrame(
-            all_data["commanded_ee_position_xy"],
-            columns=["x", "y"],
+            all_data["commanded_ee_position_xy"], columns=["x", "y"]
         )
         df["commanded_ee_rotation_6d"] = pd.DataFrame(
             all_data["commanded_ee_rotation_6d"],
@@ -231,12 +217,7 @@ def build_dataframe(data, mode):
                 )
             )
             all_data["torque2"].append(
-                np.array(
-                    [
-                        message.wrench.torque.y,
-                        message.wrench.torque.z,
-                    ]
-                )
+                np.array([message.wrench.torque.y, message.wrench.torque.z])
             )
             if keypoint_manager._detect_contact(all_data["torque2"][-1]):
                 angle_rep = keypoint_manager._get_yaw(all_data["torque2"][-1])
@@ -245,25 +226,12 @@ def build_dataframe(data, mode):
             all_data["torque_angle"].append(angle_rep)
 
         df = {}
-        df["timestamp"] = pd.DataFrame(
-            all_data["timestamp"],
-            columns=["timestamp"],
-        )
-        df["force"] = pd.DataFrame(
-            all_data["force"],
-            columns=["x", "y", "z"],
-        )
-        df["torque"] = pd.DataFrame(
-            all_data["torque"],
-            columns=["x", "y", "z"],
-        )
-        df["torque2"] = pd.DataFrame(
-            all_data["torque2"],
-            columns=["y", "z"],
-        )
+        df["timestamp"] = pd.DataFrame(all_data["timestamp"], columns=["timestamp"])
+        df["force"] = pd.DataFrame(all_data["force"], columns=["x", "y", "z"])
+        df["torque"] = pd.DataFrame(all_data["torque"], columns=["x", "y", "z"])
+        df["torque2"] = pd.DataFrame(all_data["torque2"], columns=["y", "z"])
         df["torque_angle"] = pd.DataFrame(
-            all_data["torque_angle"],
-            columns=["sin_yaw", "cos_yaw"],
+            all_data["torque_angle"], columns=["sin_yaw", "cos_yaw"]
         )
 
         df = pd.concat(df, axis=1).astype(np.float64)
@@ -330,7 +298,9 @@ def add_keypoints(df, episode_ends, keypoint_args):
 
             added = keypoint_manager.add_keypoint(position, torque2)
             for kp in range(keypoint_args["num_keypoints"]):
-                new_df.loc[idx, f"keypoint{kp}"] = np.concatenate(keypoint_manager.all_keypoints[kp])
+                new_df.loc[idx, f"keypoint{kp}"] = np.concatenate(
+                    keypoint_manager.all_keypoints[kp]
+                )
             if added:
                 num_keypoints += 1
 
@@ -342,10 +312,6 @@ def add_keypoints(df, episode_ends, keypoint_args):
 if __name__ == "__main__":
     rosbag_names = ["cube", "cube2"]
     new_dataset_name = "cube_12_5cm"
-    keypoint_args = {
-        "num_keypoints": 15,
-        "min_dist": 0.05,
-        "threshold_force": 1.0,
-    }
+    keypoint_args = {"num_keypoints": 15, "min_dist": 0.05, "threshold_force": 1.0}
     keypoint_manager = KeypointManager(**keypoint_args)
     build_dataset(new_dataset_name, rosbag_names, keypoint_args)

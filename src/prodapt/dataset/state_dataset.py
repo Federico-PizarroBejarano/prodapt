@@ -53,10 +53,7 @@ class StateDataset(torch.utils.data.Dataset):
             ]
         ).shape[1]
 
-        train_data = {
-            "action": actions,  # (N, action_dim)
-            "obs": obs,  # (N, obs_dim)
-        }
+        train_data = {"action": actions, "obs": obs}  # (N, action_dim)  # (N, obs_dim)
 
         # Marks one-past the last index for each episode
         episode_ends = dataset_root["meta"]["episode_ends"][:]

@@ -245,10 +245,9 @@ class TransformerForDiffusion(ModuleAttrMixin):
         assert (
             len(inter_params) == 0
         ), "parameters %s made it into both decay/no_decay sets!" % (str(inter_params),)
-        assert (
-            len(param_dict.keys() - union_params) == 0
-        ), "parameters %s were not separated into either decay/no_decay set!" % (
-            str(param_dict.keys() - union_params),
+        assert len(param_dict.keys() - union_params) == 0, (
+            "parameters %s were not separated into either decay/no_decay set!"
+            % (str(param_dict.keys() - union_params),)
         )
 
         # create the pytorch optimizer object
@@ -360,10 +359,7 @@ class TransformerForDiffusion(ModuleAttrMixin):
             x = self.drop(token_embeddings + position_embeddings)
             # (B,T,n_emb)
             x = self.decoder(
-                tgt=x,
-                memory=memory,
-                tgt_mask=self.mask,
-                memory_mask=self.memory_mask,
+                tgt=x, memory=memory, tgt_mask=self.mask, memory_mask=self.memory_mask
             )
             # (B,T,n_emb)
 

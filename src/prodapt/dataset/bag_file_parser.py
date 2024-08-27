@@ -27,7 +27,7 @@ class BagFileParser:
         ).fetchall()
         return [
             (
-                timestamp / 10.0**9,
+                timestamp / 10.0 ** 9,
                 deserialize_message(data, self.topic_msg_message[topic_name]),
             )
             for timestamp, data in rows

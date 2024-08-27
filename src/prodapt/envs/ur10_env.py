@@ -60,9 +60,7 @@ class UR10Env(gym.Env):
             self.keypoint_manager.reset()
 
         self.command_publisher.send_action(
-            action=self.base_command,
-            duration=4,
-            last_joint_pos=self.reset_joint_pos,
+            action=self.base_command, duration=4, last_joint_pos=self.reset_joint_pos
         )
 
         time.sleep(4)
@@ -105,8 +103,7 @@ class UR10Env(gym.Env):
 
         if self.keypoints_in_obs:
             kp_added = self.keypoint_manager.add_keypoint(
-                self.joint_state_subscriber.last_obs,
-                self.force_subscriber.last_obs,
+                self.joint_state_subscriber.last_obs, self.force_subscriber.last_obs
             )
             if kp_added:
                 print(np.round(self.keypoint_manager.all_keypoints[0], 2))
