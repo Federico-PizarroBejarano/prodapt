@@ -12,7 +12,7 @@ from prodapt.envs.ur10_ros_interface.joints_publisher import JointsPublisher
 
 
 class UR10Env(gym.Env):
-    def __init__(self, controller, action_list, obs_list, simulator, keypoint_args):
+    def __init__(self, controller, action_list, obs_list, interface, keypoint_args):
         rclpy.init()
         self.joint_state_subscriber = JointStatesSubscriber(obs_list)
         self.force_subscriber = ForceSubscriber(obs_list)
@@ -24,7 +24,7 @@ class UR10Env(gym.Env):
             self.base_command = [0.4, 0, 0.1, 1, 0, 0, 0, -1, 0]
             self.command_publisher = JointsPublisher(
                 action_list=action_list,
-                simulator=simulator,
+                interface=interface,
                 base_command=self.base_command,
             )
 

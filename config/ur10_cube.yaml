@@ -9,6 +9,8 @@ keypoints_in_obs: True
 
 use_transformer: False
 
+model_name: best_ours
+
 transformer_args:
   n_layer: 8
   n_head: 4
@@ -19,7 +21,7 @@ transformer_args:
   causal_attn: True
   time_as_cond: True # if false, use BERT like encoder only arch, time as input
   obs_as_cond: True
-  n_cond_layers: 0 # >0: use transformer encoder for cond, otherwise use MLP
+  n_cond_layers: 2 # >0: use transformer encoder for cond, otherwise use MLP
 
 unet_args:
   diffusion_step_embed_dim: 256
@@ -28,14 +30,15 @@ unet_args:
   n_groups: 8
 
 train:
-  num_epochs: 1000
-  dataset_path: "./data/ur10/simple2.zarr"
+  num_epochs: 5000
+  dataset_path: ./data/ur10/cube_12.zarr
 
 inference:
-  max_steps: 500
+  num_inferences: 25
+  max_steps: 1000
   render: False
-  checkpoint_path: "./checkpoints/simple2_bypass.pt"
-  simulator: isaacsim  # possible values: isaacsim
+  checkpoint_path: None
+  interface: isaacsim  # possible values: ur-driver, isaacsim
   warmstart: True
 
 parameters:
@@ -44,9 +47,9 @@ parameters:
   # Diffusion horizons
   pred_horizon: 20
   obs_horizon: 3
-  action_horizon: 5
+  action_horizon: 10
 
 keypoint_args:
-  num_keypoints: 1
+  num_keypoints: 10
   min_dist: 0.0254
   threshold_force: 1.0

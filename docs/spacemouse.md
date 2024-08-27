@@ -42,7 +42,7 @@ To accomplish this, the `spacenav` ROS package is used (https://index.ros.org/p/
     # If using URSim
     ros2 run spacenav_converter converter_movel  # or 'converter_joints' to control via joint positions
     # If using Isaac Sim
-    ros2 run spacenav_converter converter_joints --ros-args -p simulator:=isaacsim
+    ros2 run spacenav_converter converter_joints --ros-args -p interface:=isaacsim
     ```
     Now you should be able to control the robot with the SpaceMouse by moving the SpaceMouse in the desired direction and orientation (i.e., not touching the SpaceMouse should cause the robot to stay still).
 

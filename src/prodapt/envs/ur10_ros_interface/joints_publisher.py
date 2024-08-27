@@ -1,5 +1,3 @@
-import time
-
 from rclpy.node import Node
 from rclpy.time import Duration
 
@@ -19,20 +17,20 @@ from prodapt.utils.rotation_utils import (
 
 
 class JointsPublisher(Node):
-    def __init__(self, action_list, simulator, base_command):
+    def __init__(self, action_list, interface, base_command):
         super().__init__("joints_publisher")
 
         self.action_list = action_list
-        self.simulator = simulator
+        self.interface = interface
         self.base_command = base_command
 
-        if self.simulator == "ursim":
+        if self.interface == "ur-driver":
             self.publisher = self.create_publisher(
                 JointTrajectory,
                 "/scaled_joint_trajectory_controller/joint_trajectory",
                 10,
             )
-        if self.simulator == "isaacsim":
+        if self.interface == "isaacsim":
             self.publisher = self.create_publisher(JointState, "/joint_command", 10)
 
         self.ordered_link_names = [
@@ -61,7 +59,7 @@ class JointsPublisher(Node):
         header.stamp = self.get_clock().now().to_msg()
         header.frame_id = ""
 
-        if self.simulator == "ursim":
+        if self.interface == "ur-driver":
             joint_command = JointTrajectory()
             joint_command.header = header
             joint_command.joint_names = self.ordered_link_names
@@ -70,11 +68,10 @@ class JointsPublisher(Node):
             joint_command.points[0].time_from_start = Duration(
                 seconds=duration
             ).to_msg()
-        elif self.simulator == "isaacsim":
+        elif self.interface == "isaacsim":
             joint_command = JointState()
             joint_command.header = header
             joint_command.name = self.ordered_link_names
             joint_command.position = [float(elem) for elem in best_IK]
 
         self.publisher.publish(joint_command)
-        time.sleep(duration)
