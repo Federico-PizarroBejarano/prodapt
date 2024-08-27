@@ -25,5 +25,6 @@ apt-get -y install ros-${ROS_DISTRO}-ros2-controllers
 apt-get -y install ros-${ROS_DISTRO}-ur
 apt-get -y install python3-rosdep
 
+# Clean
 apt-get autoremove -y
-apt-get clean -y
+apt-get autoclean -y
