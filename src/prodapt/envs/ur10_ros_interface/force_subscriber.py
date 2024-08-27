@@ -24,5 +24,7 @@ class ForceSubscriber(Node):
             self.last_obs.append(
                 [msg.wrench.torque.x, msg.wrench.torque.y, msg.wrench.torque.z]
             )
+        if "torque2" in self.obs_list:
+            self.last_obs.append([msg.wrench.torque.y, msg.wrench.torque.z])
 
         self.last_obs = np.concatenate(self.last_obs)

@@ -45,6 +45,13 @@ class StateDataset(torch.utils.data.Dataset):
         self.action_dim = actions.shape[1]
         obs = np.hstack([dataset_root["data"]["obs"][key][:] for key in obs_list])
         self.obs_dim = obs.shape[1]
+        self.real_obs_dim = np.hstack(
+            [
+                dataset_root["data"]["obs"][key][:]
+                for key in obs_list
+                if "keypoint" not in key
+            ]
+        ).shape[1]
 
         train_data = {
             "action": actions,  # (N, action_dim)
@@ -68,7 +75,7 @@ class StateDataset(torch.utils.data.Dataset):
         stats = dict()
         normalized_train_data = dict()
         for key, data in train_data.items():
-            stats[key] = get_data_stats(data)
+            stats[key] = get_data_stats(data, key, obs_list, self.real_obs_dim)
             normalized_train_data[key] = normalize_data(data, stats[key])
 
         self.indices = indices
@@ -132,7 +139,7 @@ def create_state_dataloader(
         # Don't kill worker process afte each epoch
         persistent_workers=True,
     )
-    return dataloader, stats, dataset.action_dim, dataset.obs_dim
+    return dataloader, stats, dataset.action_dim, dataset.obs_dim, dataset.real_obs_dim
 
 
 if __name__ == "__main__":
@@ -148,7 +155,7 @@ if __name__ == "__main__":
     action_list = ["ee_pose"]  # possible values: ee_pose
     obs_list = ["state"]  # possible values: state, img, keypoint, n_contacts
 
-    dataloader, stats, action_dim, obs_dim = create_state_dataloader(
+    dataloader, stats, action_dim, obs_dim, real_obs_dim = create_state_dataloader(
         dataset_path, action_list, obs_list, pred_horizon, obs_horizon, action_horizon
     )
 

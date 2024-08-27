@@ -15,8 +15,8 @@ def create_sample_indices(
         end_idx = episode_ends[i]
         episode_length = end_idx - start_idx
 
-        min_start = 0  # -pad_before
-        max_start = episode_length - sequence_length  # + pad_after
+        min_start = -pad_before
+        max_start = episode_length - sequence_length + pad_after
 
         # range stops one idx before end
         for idx in range(min_start, max_start + 1):
@@ -59,9 +59,18 @@ def sample_sequence(
 
 
 # normalize data
-def get_data_stats(data):
+def get_data_stats(data, key, obs_list, real_obs_dim):
     data = data.reshape(-1, data.shape[-1])
     stats = {"min": np.min(data, axis=0), "max": np.max(data, axis=0)}
+    if key == "obs" and "keypoint0" in obs_list:
+        stats["max"][real_obs_dim:] = np.tile(
+            [stats["max"][0], stats["max"][1], 1, 1],
+            (data.shape[-1] - real_obs_dim) // real_obs_dim,
+        )
+        stats["min"][real_obs_dim:] = np.tile(
+            [stats["min"][0], stats["min"][1], -1, -1],
+            (data.shape[-1] - real_obs_dim) // real_obs_dim,
+        )
     return stats
 
 
@@ -81,5 +90,9 @@ def normalize_data(data, stats):
 
 def unnormalize_data(ndata, stats):
     ndata = (ndata + 1) / 2
-    data = ndata * (stats["max"] - stats["min"]) + stats["min"]
+    data = np.zeros(ndata.shape, dtype=np.float32)
+    for dim in range(ndata.shape[1]):
+        data[:, dim] = (
+            ndata[:, dim] * (stats["max"][dim] - stats["min"][dim]) + stats["min"][dim]
+        )
     return data

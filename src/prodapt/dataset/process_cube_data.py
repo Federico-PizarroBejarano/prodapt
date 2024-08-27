@@ -34,11 +34,13 @@ obs_keys = [
     "ee_rotation_6d",
     "force",
     "torque",
+    "torque2",
+    "torque_angle",
 ]
 
 
-def process_trajectory(plot=False):
-    bag_file = f"/home/eels/prodapt/data/ur10/{dataset_name}/{dataset_name}_0.db3"
+def rosbag_to_dataframe(rosbag_name, plot=False):
+    bag_file = f"/home/eels/prodapt/data/ur10/{rosbag_name}/{rosbag_name}_0.db3"
     parser = BagFileParser(bag_file)
 
     data_joints = parser.get_messages("/joint_states")
@@ -49,7 +51,6 @@ def process_trajectory(plot=False):
     df_commands = build_dataframe(data_commands, mode="joint_command")
     df_forces = build_dataframe(data_forces, mode="force_torque")
 
-    # TODO: Find a better solution for merging two multi-column Dataframes
     df_joints.columns = ["__".join(a) for a in df_joints.columns.to_flat_index()]
     df_commands.columns = ["__".join(a) for a in df_commands.columns.to_flat_index()]
     df_forces.columns = ["__".join(a) for a in df_forces.columns.to_flat_index()]
@@ -70,10 +71,12 @@ def process_trajectory(plot=False):
                 episode_ends[ep] : episode_ends[ep + 1]
             ]
             plt.plot(positions[:, 0], positions[:, 1])
+            plt.xlim(0.3, 1.3)
+            plt.ylim(-0.45, 0.45)
             plt.show()
         episode_ends = episode_ends[1:]
 
-    return df, episode_ends
+    return df[: episode_ends[-1]], episode_ends
 
 
 def get_episode_ends(all_joint_pos):
@@ -203,6 +206,8 @@ def build_dataframe(data, mode):
             "timestamp": [],
             "force": [],
             "torque": [],
+            "torque2": [],
+            "torque_angle": [],
         }
         for i in range(len(data)):
             message = data[i][1]
@@ -225,6 +230,19 @@ def build_dataframe(data, mode):
                     ]
                 )
             )
+            all_data["torque2"].append(
+                np.array(
+                    [
+                        message.wrench.torque.y,
+                        message.wrench.torque.z,
+                    ]
+                )
+            )
+            if keypoint_manager._detect_contact(all_data["torque2"][-1]):
+                angle_rep = keypoint_manager._get_yaw(all_data["torque2"][-1])
+            else:
+                angle_rep = np.array([0.0, 0.0])
+            all_data["torque_angle"].append(angle_rep)
 
         df = {}
         df["timestamp"] = pd.DataFrame(
@@ -239,24 +257,43 @@ def build_dataframe(data, mode):
             all_data["torque"],
             columns=["x", "y", "z"],
         )
+        df["torque2"] = pd.DataFrame(
+            all_data["torque2"],
+            columns=["y", "z"],
+        )
+        df["torque_angle"] = pd.DataFrame(
+            all_data["torque_angle"],
+            columns=["sin_yaw", "cos_yaw"],
+        )
 
         df = pd.concat(df, axis=1).astype(np.float64)
 
     return df
 
 
-def build_dataset(keypoint_args):
+def build_dataset(new_dataset_name, rosbag_names, keypoint_args):
     path = "/home/eels/prodapt/data/ur10/"
 
-    shutil.rmtree(path + f"{dataset_name}.zarr", ignore_errors=True)
-    f = zarr.group(path + f"{dataset_name}.zarr")
+    shutil.rmtree(path + f"{new_dataset_name}.zarr", ignore_errors=True)
+    f = zarr.group(path + f"{new_dataset_name}.zarr")
     dataset = f.create_group("data")
 
     actions = dataset.create_group("action")
     obs = dataset.create_group("obs")
 
-    df, episode_ends = process_trajectory()
-    df = add_keypoints(df, episode_ends, keypoint_args)
+    dfs = []
+    episode_ends_lists = np.array([0])
+
+    for rosbag in rosbag_names:
+        df, episode_ends = rosbag_to_dataframe(rosbag)
+        df = add_keypoints(df, episode_ends, keypoint_args)
+        dfs.append(df)
+        episode_ends_lists = np.concatenate(
+            [episode_ends_lists, np.squeeze(episode_ends) + episode_ends_lists[-1]]
+        )
+
+    df = pd.concat(dfs, ignore_index=True)
+    episode_ends = episode_ends_lists[1:]
 
     for key in action_keys:
         actions.create_dataset(key, data=df[key].astype(np.float32).to_numpy())
@@ -275,7 +312,7 @@ def build_dataset(keypoint_args):
 
 def add_keypoints(df, episode_ends, keypoint_args):
     kp_headers = [f"keypoint{i}" for i in range(keypoint_args["num_keypoints"])]
-    kp_subheaders = ["x", "y", "tx", "ty", "tz"]
+    kp_subheaders = ["x", "y", "sin_yaw", "cos_yaw"]
     midx = pd.MultiIndex.from_product([kp_headers, kp_subheaders])
 
     keypoints_df = pd.DataFrame(index=range(df.shape[0]), columns=midx)
@@ -283,32 +320,32 @@ def add_keypoints(df, episode_ends, keypoint_args):
     new_df.loc[:, kp_headers] = 0.0
 
     aug_episode_ends = [0] + episode_ends
-    keypoint_manager = KeypointManager(**keypoint_args)
     for ee in range(1, len(aug_episode_ends)):
         keypoint_manager.reset()
+        num_keypoints = 0
 
         for idx in range(aug_episode_ends[ee - 1], aug_episode_ends[ee]):
-            position = list(new_df.loc[idx, "ee_position"])[:2]
-            force = list(new_df.loc[idx, "force"])
-            torque = list(new_df.loc[idx, "torque"])
+            position = list(new_df.loc[idx, "ee_position_xy"])
+            torque2 = list(new_df.loc[idx, "torque2"])
 
-            keypoint_manager.add_keypoint(position, force + torque)
+            added = keypoint_manager.add_keypoint(position, torque2)
             for kp in range(keypoint_args["num_keypoints"]):
-                new_df.loc[idx, f"keypoint{kp}"] = np.concatenate(
-                    (
-                        keypoint_manager.all_keypoints[kp][0],
-                        keypoint_manager.all_keypoints[kp][1][-3:],
-                    )
-                )
+                new_df.loc[idx, f"keypoint{kp}"] = np.concatenate(keypoint_manager.all_keypoints[kp])
+            if added:
+                num_keypoints += 1
+
+        print(ee, num_keypoints)
 
     return new_df
 
 
 if __name__ == "__main__":
-    dataset_name = "simple2"
+    rosbag_names = ["cube", "cube2"]
+    new_dataset_name = "cube_12_5cm"
     keypoint_args = {
-        "num_keypoints": 5,
-        "min_dist": 0.0254,
+        "num_keypoints": 15,
+        "min_dist": 0.05,
         "threshold_force": 1.0,
     }
-    build_dataset(keypoint_args)
+    keypoint_manager = KeypointManager(**keypoint_args)
+    build_dataset(new_dataset_name, rosbag_names, keypoint_args)
