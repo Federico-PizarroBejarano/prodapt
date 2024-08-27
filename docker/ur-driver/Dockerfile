@@ -10,7 +10,7 @@ RUN apt-get update \
         && rm -rf /var/lib/apt/lists/*
 RUN rosdep update
 
-ENV ROBOT_IP=192.168.56.101
+ENV ROBOT_IP=192.168.56.20
 ENV UR_TYPE="ur10e"
 
 # Copy entrypoint script

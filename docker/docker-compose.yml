@@ -7,12 +7,12 @@ services:
       - ROBOT_MODEL=UR10
     networks:
       ursim_net:
-        ipv4_address: 192.168.56.101
+        ipv4_address: 192.168.56.20
 
   ur-driver:
     image: ur-driver:latest
     environment:
-      - ROBOT_IP=192.168.56.101
+      - ROBOT_IP=192.168.56.20
     networks:
       ursim_net:
         ipv4_address: 192.168.56.102
@@ -24,13 +24,15 @@ services:
     stdin_open: true
     tty: true
     environment:
-      - ROBOT_IP=192.168.56.101
+      - ROBOT_IP=192.168.56.20
     networks:
       ursim_net:
         ipv4_address: 192.168.56.102
     volumes:
     - /home/${USER}/prodapt:/root/prodapt
     - /var/run/spnav.sock:/var/run/spnav.sock
+    ports:
+    - 50002:50002
 
 networks:
   ursim_net:
