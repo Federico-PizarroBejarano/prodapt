@@ -15,29 +15,29 @@ Legend._ncol = property(lambda self: self._ncols)
 plot = True
 save_figs = False
 
-baseline = "baseline"
-config = "medium"
+baseline = "baseline_med"
+# config = "medium"
 diff_iters = 45
 
 models = [
-    f"{config}_{diff_iters}_3_10",
+    f"base_5cm",
     f"{baseline}_{diff_iters}_3",
-    # f"{baseline}_{diff_iters}_6",
-    # f"{baseline}_{diff_iters}_20",
-    # f"{baseline}_{diff_iters}_50",
+    f"{baseline}_{diff_iters}_6",
+    f"{baseline}_{diff_iters}_20",
+    f"{baseline}_{diff_iters}_50",
 ]
 colors = {
-    f"{config}_{diff_iters}_3_10": "cornflowerblue",
+    f"base_5cm": "cornflowerblue",
     f"{baseline}_{diff_iters}_3": "lightgreen",
     f"{baseline}_{diff_iters}_6": "limegreen",
     f"{baseline}_{diff_iters}_20": "forestgreen",
     f"{baseline}_{diff_iters}_50": "darkgreen",
 }
 
-setups = ["clear", "cube", "wall", "bucket"]
+setups = ["clear", "cube", "wall", "bucket", "deep_bucket"]
 
-results = "results_real"
-REAL = True
+results = "results_final"
+REAL = False
 
 
 def load_all_models():
@@ -60,17 +60,23 @@ def load_all_models():
                 "clear": exp_data["done"][:10],
                 "cube": exp_data["done"][10:20],
                 "wall": exp_data["done"][20:30],
-                "bucket": exp_data["done"][30:],
+                "bucket": exp_data["done"][30:40],
+                "deep_bucket": exp_data["done"][40:],
             }
             exp_iters = {
                 "clear": np.array(exp_data["iters"][:10])[exp_done["clear"]],
                 "cube": np.array(exp_data["iters"][10:20])[exp_done["cube"]],
                 "wall": np.array(exp_data["iters"][20:30])[exp_done["wall"]],
-                "bucket": np.array(exp_data["iters"][30:])[exp_done["bucket"]],
+                "bucket": np.array(exp_data["iters"][30:40])[exp_done["bucket"]],
+                "deep_bucket": np.array(exp_data["iters"][40:])[
+                    exp_done["deep_bucket"]
+                ],
             }
+            exp_time = np.reshape(exp_data["diff_times"], (-1, 1))
             all_results[model] = {}
             all_results[model]["done"] = exp_done
             all_results[model]["iters"] = exp_iters
+            all_results[model]["time"] = exp_time
 
     return all_results
 
@@ -173,6 +179,54 @@ def plot_done():
     plt.close()
 
 
+def plot_time():
+    all_results = load_all_models()
+
+    fig = plt.figure(figsize=(16.0, 10.0))
+    ax = fig.add_subplot(111)
+
+    ylabel = "Diffusion Inference Time (s)"
+    ax.set_ylabel(ylabel, weight="bold", fontsize=25, labelpad=10)
+
+    medianprops = dict(linestyle="--", linewidth=2.5, color="black")
+    for idx, model in enumerate(models):
+        box_plot = ax.boxplot(
+            all_results[model]["time"],
+            positions=[idx],
+            widths=[0.8],
+            patch_artist=True,
+            medianprops=medianprops,
+            showfliers=False,
+        )
+
+        box_plot["boxes"][0].set_facecolor(colors[model])
+
+    plt.xticks(weight="bold", fontsize=10, rotation=30, ha="right")
+    ax.set_xticks(np.arange(len(models)))
+    ax.set_xticklabels([key.title() for key in models])
+    fig.tight_layout()
+
+    # ax.set_ylim(ymin=0)
+    ax.yaxis.grid(True)
+
+    plt.tick_params(
+        axis="x",
+        which="both",
+        bottom=False,
+        top=False,
+    )
+
+    if plot is True:
+        plt.show()
+    if save_figs:
+        fig.savefig(f"./{results}/time.png", dpi=300)
+        tikzplotlib.save(
+            f"./{results}/time.tex", axis_height="2.2in", axis_width="3.25in"
+        )
+    plt.close()
+
+
 if __name__ == "__main__":
     plot_iters()
     plot_done()
+    plot_time()

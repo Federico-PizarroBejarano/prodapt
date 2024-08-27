@@ -234,7 +234,8 @@ class DiffusionPolicy:
 
         print(f"Mean Done: {final_done}")
 
-        print(total_results)
+        print(total_results["iters"])
+        print(total_results["done"])
 
         with open(f"./results/{model_name}.pkl", "wb") as handle:
             pickle.dump(total_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -385,7 +386,6 @@ class DiffusionPolicy:
                     if done and step_idx > 50:
                         break
 
-        # print out the maximum target coverage
         print("Total Iters: ", step_idx)
 
         results = {
