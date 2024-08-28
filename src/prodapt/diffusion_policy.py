@@ -19,7 +19,6 @@ from tqdm.auto import tqdm
 from prodapt.dataset.dataset_utils import normalize_data, unnormalize_data
 from prodapt.diffusion.conditional_unet_1d import ConditionalUnet1D
 from prodapt.diffusion.transformer_for_diffusion import TransformerForDiffusion
-from prodapt.utils.rotation_utils import real_exp_transform
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -284,11 +283,6 @@ class DiffusionPolicy:
 
                     if not self.use_transformer:
                         obs_cond = obs_cond.flatten(start_dim=1)
-
-                    obs_cond = (
-                        obs_cond
-                        + torch.randn(obs_cond.shape, device=obs_cond.device) * 0.01
-                    )
 
                     # initialize action from Guassian noise
                     noise = torch.randn(

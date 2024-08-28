@@ -65,9 +65,7 @@ class UR10Env(gym.Env):
     def reset(self):
         self._get_latest_observation()
 
-        self.position_control_loop(
-            action=self.base_command, last_joint_pos=self.reset_joint_pos
-        )
+        self.position_control_loop(action=self.base_command)
 
         if self.keypoints_in_obs:
             self.keypoint_manager.reset()
