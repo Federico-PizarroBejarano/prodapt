@@ -221,8 +221,8 @@ class DiffusionPolicy:
         if env.name == "ur10" and env.interface == "isaacsim":
             self.sock.close()
 
-        print(total_results['iters'])
-        print(total_results['done'])
+        print(total_results["iters"])
+        print(total_results["done"])
 
         with open(f"./results/{model_name}.pkl", "wb") as handle:
             pickle.dump(total_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
