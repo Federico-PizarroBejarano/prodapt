@@ -7,7 +7,6 @@ from prodapt.dataset.state_dataset import create_state_dataloader
 from prodapt.diffusion_policy import DiffusionPolicy
 
 
-# HACK: Fix these relative paths for configs
 @hydra.main(version_base=None, config_path="../../config")
 def main_app(cfg: DictConfig) -> None:
     print(cfg)

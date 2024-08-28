@@ -18,7 +18,7 @@ class KeypointManager:
             if dist <= self.min_dist:
                 angle_2rep = np.squeeze(self._get_yaw(torque2))
                 angle_dist = np.linalg.norm(np.squeeze(keypoint[1]) - angle_2rep)
-                if angle_dist < 0.75:
+                if angle_dist < np.pi / 4.0:
                     return False
 
         self._queue_keypoint(position, torque2)

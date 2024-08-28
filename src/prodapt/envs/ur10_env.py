@@ -65,8 +65,8 @@ class UR10Env(gym.Env):
 
         time.sleep(4)
 
-        obs, info = self._get_latest_observation()
-        return obs, info
+        obs = self._get_latest_observation()
+        return obs, {}
 
     def step(self, action):
         if self.last_joint_pos is None:
@@ -75,12 +75,9 @@ class UR10Env(gym.Env):
         self.command_publisher.send_action(
             action=action, duration=0.1, last_joint_pos=self.last_joint_pos
         )
-        obs, info = self._get_latest_observation()
-
+        obs = self._get_latest_observation()
         done = self._get_done(obs)
-        reward = -1 if not done else 1500
-
-        return obs, reward, done, False, info
+        return obs, 0, done, False, {}
 
     def _get_done(self, obs):
         done = np.linalg.norm(obs[:2] - np.array([1.2, 0])) < 0.05
@@ -119,7 +116,7 @@ class UR10Env(gym.Env):
 
         self.last_joint_pos = self.joint_state_subscriber.last_joint_pos
         self.last_obs = obs
-        return obs, {}
+        return obs
 
     def _limit_action(self, action):
         shortened_action = np.clip(

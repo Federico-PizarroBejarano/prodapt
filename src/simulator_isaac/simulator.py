@@ -155,7 +155,6 @@ class Simulator:
             self.robot.pos_reset()
             startup_counter = 0
             self.disconnect_controller()
-            detection = False
             reset = False
 
             while not reset:
@@ -166,16 +165,7 @@ class Simulator:
                 ee_force = measured_forces[-3, :]
                 self.force_publisher.publish_force(ee_force)
 
-                prev_detection = detection
-                detection = np.linalg.norm(ee_force[3:]) > 1.0
-                if detection:
-                    x_dir = "LEFT" if ee_force[1] > 0 else "RIGHT"
-                    y_dir = "UP" if ee_force[2] > 0 else "DOWN"
-                    print(f"{x_dir} ({int(ee_force[1])}), {y_dir} ({int(ee_force[2])})")
-                if prev_detection and not detection:
-                    print("-------")
-
-                if startup_counter == 20:
+                if startup_counter == 10:
                     self.connect_controller()
 
                 try:

@@ -81,7 +81,7 @@ class ConverterToJoints(Node):
                 0,
             ]
 
-            # Integrating angular velocities according to quaternion equation: q_new = q_curr + dt/2*w*q_curr
+            # # Integrating angular velocities according to quaternion equation: q_new = q_curr + dt/2*w*q_curr
             # quat_angular_vel = quaternion_from_euler(angular.x, angular.y, angular.z)
             # angular_vel_delta = [
             #     self.timer_period * 0.25 * rot / 2

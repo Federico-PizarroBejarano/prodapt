@@ -76,6 +76,7 @@ class TransformerForDiffusion(ModuleAttrMixin):
                 self.encoder = nn.Sequential(
                     nn.Linear(n_emb, 4 * n_emb), nn.Mish(), nn.Linear(4 * n_emb, n_emb)
                 )
+
             # decoder
             decoder_layer = nn.TransformerDecoderLayer(
                 d_model=n_emb,
@@ -382,11 +383,11 @@ def test():
         # time_as_cond=False,
         # n_cond_layers=4
     )
-    opt = transformer.configure_optimizers()
+    transformer.configure_optimizers()
 
     timestep = torch.tensor(0)
     sample = torch.zeros((4, 8, 16))
-    out = transformer(sample, timestep)
+    transformer(sample, timestep)
 
     # GPT with time embedding and obs cond
     transformer = TransformerForDiffusion(
@@ -399,12 +400,12 @@ def test():
         # time_as_cond=False,
         # n_cond_layers=4
     )
-    opt = transformer.configure_optimizers()
+    transformer.configure_optimizers()
 
     timestep = torch.tensor(0)
     sample = torch.zeros((4, 8, 16))
     cond = torch.zeros((4, 4, 10))
-    out = transformer(sample, timestep, cond)
+    transformer(sample, timestep, cond)
 
     # GPT with time embedding and obs cond and encoder
     transformer = TransformerForDiffusion(
@@ -417,12 +418,12 @@ def test():
         # time_as_cond=False,
         n_cond_layers=4,
     )
-    opt = transformer.configure_optimizers()
+    transformer.configure_optimizers()
 
     timestep = torch.tensor(0)
     sample = torch.zeros((4, 8, 16))
     cond = torch.zeros((4, 4, 10))
-    out = transformer(sample, timestep, cond)
+    transformer(sample, timestep, cond)
 
     # BERT with time embedding token
     transformer = TransformerForDiffusion(
@@ -435,11 +436,11 @@ def test():
         time_as_cond=False,
         # n_cond_layers=4
     )
-    opt = transformer.configure_optimizers()
+    transformer.configure_optimizers()
 
     timestep = torch.tensor(0)
     sample = torch.zeros((4, 8, 16))
-    out = transformer(sample, timestep)
+    transformer(sample, timestep)
 
 
 if __name__ == "__main__":

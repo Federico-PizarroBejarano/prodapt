@@ -219,7 +219,6 @@ class DiffusionPolicy:
                 total_results[key].append(results[key])
 
         if env.name == "ur10" and env.interface == "isaacsim":
-            # self.sock.send(bytes("close", "UTF-8"))
             self.sock.close()
 
         final_done = np.mean(total_results["done"])
@@ -278,11 +277,6 @@ class DiffusionPolicy:
                     if not self.use_transformer:
                         obs_cond = obs_cond.flatten(start_dim=1)
 
-                    obs_cond = (
-                        obs_cond
-                        + torch.randn(obs_cond.shape, device=obs_cond.device) * 0.01
-                    )
-
                     # initialize action from Guassian noise
                     noise = torch.randn(
                         (B, self.pred_horizon, self.action_dim), device=device
@@ -290,11 +284,10 @@ class DiffusionPolicy:
                     if not warmstart or prev_action_traj is None:
                         noisy_action = noise
                     else:
-                        # TODO: Test number of warmstarting steps
                         timestep = self.noise_scheduler.timesteps[
                             [-self.num_diffusion_iters // warmstart_div]
                         ]
-                        norm_action = torch.concatenate(  # TODO: Test this vs just the previous traj
+                        norm_action = torch.concatenate(
                             (
                                 prev_action_traj[:, self.action_horizon :, :],
                                 torch.tile(
@@ -350,8 +343,7 @@ class DiffusionPolicy:
                 action = action_pred[start:end, :]  # (action_horizon, action_dim)
                 assert action.shape[0] == self.action_horizon
 
-                # execute action_horizon number of steps
-                # without replanning
+                # execute action_horizon number of steps without replanning
                 for i in range(len(action)):
                     # Set rate at 10Hz
                     time.sleep(max(0, 0.1 - (time.time() - prev_time)))

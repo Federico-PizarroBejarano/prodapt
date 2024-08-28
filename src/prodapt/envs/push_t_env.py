@@ -1,6 +1,7 @@
-from typing import Tuple, Sequence, Dict, Union, Optional
-import numpy as np
+from typing import Tuple, Sequence
 import collections
+
+import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 import pygame
@@ -228,6 +229,7 @@ class PushTEnv(gym.Env):
         render_size=96,
         reset_to_state=None,
     ):
+        self.name = "push_t"
         self._seed = None
         self.seed()
         self.window_size = ws = 512  # The size of the PyGame window

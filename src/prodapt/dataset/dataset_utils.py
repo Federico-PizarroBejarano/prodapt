@@ -58,7 +58,6 @@ def sample_sequence(
     return result
 
 
-# normalize data
 def get_data_stats(data, key, obs_list, real_obs_dim):
     data = data.reshape(-1, data.shape[-1])
     stats = {"min": np.min(data, axis=0), "max": np.max(data, axis=0)}
