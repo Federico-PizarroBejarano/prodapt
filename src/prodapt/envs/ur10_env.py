@@ -1,4 +1,3 @@
-import time
 import numpy as np
 import gymnasium as gym
 import rclpy
@@ -26,7 +25,7 @@ class UR10Env(gym.Env):
             self.base_command = [x, y, z, 3.14, 0, 0]
             self.command_publisher = MovelPublisher(action_list=action_list)
         elif controller == "joints":
-            self.base_command = [x, y, z, 1, 0, 0, 0, -1, 0]
+            self.base_command = [x, y, z, 0, 1, 0, 1, 0, 0]
             self.command_publisher = JointsPublisher(
                 action_list=action_list,
                 interface=interface,
@@ -46,8 +45,7 @@ class UR10Env(gym.Env):
         if np.any(["keypoint" in key for key in obs_list]):
             self.keypoints_in_obs = True
 
-        if self.keypoints_in_obs:
-            self.keypoint_manager = KeypointManager(**keypoint_args)
+        self.keypoint_manager = KeypointManager(**keypoint_args)
 
     def close(self):
         self.joint_state_subscriber.destroy_node()
@@ -55,25 +53,47 @@ class UR10Env(gym.Env):
         self.command_publisher.destroy_node()
         rclpy.shutdown()
 
+    def position_control_loop(self, action, z_offset=0.0):
+        goal_joints = np.array([100, 100, 100, 100, 100, 100])
+        while np.linalg.norm(goal_joints - self.last_joint_pos) > 0.01:
+            self._get_latest_observation()
+            goal_joints = self.command_publisher.send_action(
+                action=action, last_joint_pos=self.last_joint_pos, z_offset=z_offset
+            )
+        self.command_publisher.send_zeros()
+
     def reset(self):
+        self._get_latest_observation()
+
+        self.position_control_loop(action=self.base_command)
+
         if self.keypoints_in_obs:
             self.keypoint_manager.reset()
-
-        self.command_publisher.send_action(
-            action=self.base_command, duration=4, last_joint_pos=self.reset_joint_pos
-        )
-
-        time.sleep(1)
 
         obs = self._get_latest_observation()
         return obs, {}
 
-    def step(self, action):
+    def hard_reset(self):
+        self._get_latest_observation()
+
+        self.position_control_loop(action=self.base_command, z_offset=0.15)
+
+        self.position_control_loop(action=self.base_command)
+
+        if self.keypoints_in_obs:
+            self.keypoint_manager.reset()
+
+        obs = self._get_latest_observation()
+        return obs, {}
+
+    def step(self, action, bypass_acc_limit):
         if self.last_joint_pos is None:
             self._get_latest_observation()
         action = self._limit_action(action)
         self.command_publisher.send_action(
-            action=action, duration=0.1, last_joint_pos=self.last_joint_pos
+            action=action,
+            last_joint_pos=self.last_joint_pos,
+            bypass_acc_limit=bypass_acc_limit,
         )
         obs = self._get_latest_observation()
         done = self._get_done(obs)

@@ -95,6 +95,18 @@ def normalize_axis_angle(axis_angle):
         return axis_angle
 
 
+def real_exp_transform(position, inverse=False):
+    new_pos = position.copy()
+    if not inverse:
+        new_pos[1] = -position[0]
+        new_pos[0] = position[1]
+    else:
+        new_pos[0] = -position[1]
+        new_pos[1] = position[0]
+
+    return new_pos
+
+
 if __name__ == "__main__":
     unnormalized_axis_angle = np.array(
         [

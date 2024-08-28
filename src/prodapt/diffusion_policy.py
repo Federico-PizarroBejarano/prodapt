@@ -236,7 +236,7 @@ class DiffusionPolicy:
         env.seed(self.seed)
 
         # get first observation
-        obs, _ = env.reset()
+        obs, _ = env.hard_reset()
 
         # keep a queue of last obs_horizon steps of observations
         obs_deque = collections.deque([obs] * self.obs_horizon, maxlen=self.obs_horizon)
@@ -350,8 +350,10 @@ class DiffusionPolicy:
                     prev_time = time.time()
 
                     # stepping env
-                    next_action = self.post_process_action(action, all_actions, i)
-                    obs, _, done, _, _ = env.step(next_action)
+                    next_action, bypass_acc_limit = self.post_process_action(
+                        action, all_actions, i, obs, env
+                    )
+                    obs, _, done, _, _ = env.step(next_action, bypass_acc_limit)
                     all_actions.append(next_action)
                     all_obs.append(obs)
 
@@ -368,6 +370,8 @@ class DiffusionPolicy:
                         break
                     if done and step_idx > 50:
                         break
+
+        env.command_publisher.send_zeros()
 
         # print out the maximum target coverage
         print("Total Iters: ", step_idx)
@@ -420,13 +424,30 @@ class DiffusionPolicy:
         #     torch.backends.cudnn.deterministic = True
         #     torch.backends.cudnn.benchmark = False
 
-    def post_process_action(self, action, all_actions, iter):
+    def post_process_action(self, action, all_actions, iter, obs, env):
+        bypass_acc_limit = False
         if len(all_actions) == 0:
             next_action = action[iter]
         else:
             next_action = 0.3 * all_actions[-1] + 0.7 * action[iter]
 
-        return next_action
+            # Prevent high torque
+            if env.keypoint_manager._detect_contact(obs[2:4]):
+                bypass_acc_limit = True
+                commanded_diff = next_action - obs[:2]
+                torque = np.array(obs[2:4])
+                torque[1] *= -1
+                move_comp = (
+                    (np.dot(commanded_diff, torque))
+                    / (np.dot(torque, torque))
+                    * np.array(torque)
+                )
+                if np.dot(move_comp, torque) < 0:
+                    commanded_diff -= move_comp
+                    next_action = obs[:2] + commanded_diff
+                next_action += (torque / np.linalg.norm(torque)) * 0.01
+
+        return next_action, bypass_acc_limit
 
     def transform_obs_cond(self, obs_cond):
         if self.num_keypoints > 0:
