@@ -18,7 +18,7 @@ def axis_angle_to_quaternion(axis_angle):
     axis_angle = np.array(axis_angle)
     angle = np.linalg.norm(axis_angle)
     w = np.cos(angle * 0.5)
-    s = (1 - w ** 2) ** 0.5
+    s = (1 - w**2) ** 0.5
     if s < 0.001:
         quat = np.concatenate([axis_angle, np.array([w])])
         return quat / np.linalg.norm(quat)
@@ -31,7 +31,7 @@ def quaternion_to_axis_angle(quaternion):
     quaternion = np.array(quaternion)
     x, y, z, w = quaternion
     angle = np.arccos(w) * 2
-    s = (1 - w ** 2) ** 0.5
+    s = (1 - w**2) ** 0.5
     if s < 0.001:
         return np.array([x, y, z])
     else:

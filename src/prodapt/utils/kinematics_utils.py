@@ -70,7 +70,7 @@ def inverse_kinematics(desired_pos):
         T_54 = AH(5, th, c)
         T_14 = (T_10 * desired_pos) * np.linalg.inv(T_54 * T_65)
         P_13 = T_14 * np.matrix([0, -d4, 0, 1]).T - np.matrix([0, 0, 0, 1]).T
-        t3 = acos((np.linalg.norm(P_13) ** 2 - a2 ** 2 - a3 ** 2) / (2 * a2 * a3))
+        t3 = acos((np.linalg.norm(P_13) ** 2 - a2**2 - a3**2) / (2 * a2 * a3))
         th[2, c] = t3.real
         th[2, c + 1] = -t3.real
 

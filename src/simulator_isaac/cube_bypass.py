@@ -74,7 +74,7 @@ def add_cube(world, x_pos, y_pos, orient):
         size=0.15,
         mass=20000.0,
         visible=True,
-        orientation=[orient, 0, 0, (1.0 - orient ** 2) ** 0.5],
+        orientation=[orient, 0, 0, (1.0 - orient**2) ** 0.5],
     )
     cube.set_collision_enabled(True)
     world.scene.add(cube)
