@@ -123,16 +123,9 @@ class Simulator:
         setups = [
             "no-cubes",
             "no-cubes",
-            "1-cube-flat",
-            # "1-cube-slanted",
-            # "2-cube-wall",
             "3-cube-wall",
-            # "pyramid",
-            # "1-sided-bucket",
-            "2-sided-bucket",
-            # "random",
-            # "random_4",
-            # "random_5",
+            "narrow-bucket",
+            "J_right",
         ]
         setup_num = 0
         trial_num = 0

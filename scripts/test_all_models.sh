@@ -1,5 +1,11 @@
-python3 -m prodapt.main --config-dir="checkpoints_final/base_5cm" --config-name="base_5cm.yaml" mode=evaluate
-python3 -m prodapt.main --config-dir="checkpoints_final/baseline_med_45_3" --config-name="baseline_med_45_3.yaml" mode=evaluate
-python3 -m prodapt.main --config-dir="checkpoints_final/baseline_med_45_6" --config-name="baseline_med_45_6.yaml" mode=evaluate
-python3 -m prodapt.main --config-dir="checkpoints_final/baseline_med_45_20" --config-name="baseline_med_45_20.yaml" mode=evaluate
-python3 -m prodapt.main --config-dir="checkpoints_final/baseline_med_45_50" --config-name="baseline_med_45_50.yaml" mode=evaluate
+python3 -m prodapt.main --config-dir="checkpoints_final/cube12_5cm" --config-name="cube12_5cm.yaml" mode=evaluate inference.max_steps=1500
+python3 -m prodapt.main --config-dir="checkpoints_final/cube12_3"   --config-name="cube12_3.yaml"   mode=evaluate inference.max_steps=1500
+python3 -m prodapt.main --config-dir="checkpoints_final/cube12_6"   --config-name="cube12_6.yaml"   mode=evaluate inference.max_steps=1500
+python3 -m prodapt.main --config-dir="checkpoints_final/cube12_20"  --config-name="cube12_20.yaml"  mode=evaluate inference.max_steps=1500
+python3 -m prodapt.main --config-dir="checkpoints_final/cube12_50"  --config-name="cube12_50.yaml"  mode=evaluate inference.max_steps=1500
+
+python3 -m prodapt.main --config-dir="checkpoints_final/cube1_5cm" --config-name="cube1_5cm.yaml" mode=evaluate inference.max_steps=1500
+python3 -m prodapt.main --config-dir="checkpoints_final/cube1_3"   --config-name="cube1_3.yaml"   mode=evaluate inference.max_steps=1500
+python3 -m prodapt.main --config-dir="checkpoints_final/cube1_6"   --config-name="cube1_6.yaml"   mode=evaluate inference.max_steps=1500
+python3 -m prodapt.main --config-dir="checkpoints_final/cube1_20"  --config-name="cube1_20.yaml"  mode=evaluate inference.max_steps=1500
+python3 -m prodapt.main --config-dir="checkpoints_final/cube1_50"  --config-name="cube1_50.yaml"  mode=evaluate inference.max_steps=1500

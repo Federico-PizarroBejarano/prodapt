@@ -287,11 +287,6 @@ class DiffusionPolicy:
                     if not self.use_transformer:
                         obs_cond = obs_cond.flatten(start_dim=1)
 
-                    obs_cond = (
-                        obs_cond
-                        + torch.randn(obs_cond.shape, device=obs_cond.device) * 0.01
-                    )
-
                     # initialize action from Guassian noise
                     noise = torch.randn(
                         (B, self.pred_horizon, self.action_dim), device=device

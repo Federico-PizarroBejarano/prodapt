@@ -64,7 +64,7 @@ class UR10Env(gym.Env):
             last_joint_pos=self.reset_joint_pos,
         )
 
-        time.sleep(4)
+        time.sleep(0.1)
 
         obs, info = self._get_latest_observation()
         return obs, info

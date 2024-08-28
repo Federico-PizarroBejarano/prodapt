@@ -1,82 +1,52 @@
 import pickle
 
 import matplotlib.pyplot as plt
-
 import numpy as np
 
-import tikzplotlib
-from matplotlib.lines import Line2D
-from matplotlib.legend import Legend
+# import tikzplotlib
+# from matplotlib.lines import Line2D
+# from matplotlib.legend import Legend
 
-Line2D._us_dashSeq = property(lambda self: self._dash_pattern[1])
-Line2D._us_dashOffset = property(lambda self: self._dash_pattern[0])
-Legend._ncol = property(lambda self: self._ncols)
+# Line2D._us_dashSeq = property(lambda self: self._dash_pattern[1])
+# Line2D._us_dashOffset = property(lambda self: self._dash_pattern[0])
+# Legend._ncol = property(lambda self: self._ncols)
 
 plot = True
 save_figs = False
 
-baseline = "baseline_med"
-# config = "medium"
-diff_iters = 45
-
 models = [
-    f"base_5cm",
-    f"{baseline}_{diff_iters}_3",
-    f"{baseline}_{diff_iters}_6",
-    f"{baseline}_{diff_iters}_20",
-    f"{baseline}_{diff_iters}_50",
+    # "cube_ours",
+    "cube_3",
+    "cube_6",
+    "cube_20",
+    "cube_50",
 ]
 colors = {
-    f"base_5cm": "cornflowerblue",
-    f"{baseline}_{diff_iters}_3": "lightgreen",
-    f"{baseline}_{diff_iters}_6": "limegreen",
-    f"{baseline}_{diff_iters}_20": "forestgreen",
-    f"{baseline}_{diff_iters}_50": "darkgreen",
+    "cube_ours": "cornflowerblue",
+    "cube_3": "lightgreen",
+    "cube_6": "limegreen",
+    "cube_20": "forestgreen",
+    "cube_50": "darkgreen",
 }
 
-setups = ["clear", "cube", "wall", "bucket", "deep_bucket"]
-
-results = "results_final"
-REAL = False
+real = True
+experiments = "real" if real else "simulation"
+setups = ["clear", "wall", "bucket", "J"]
 
 
 def load_all_models():
     all_results = {}
 
     for model in models:
-        if REAL:
-            all_results[model] = {"done": {}, "iters": {}}
-            for setup in setups:
-                with open(f"./{results}/{model}/{setup}.pkl", "rb") as f:
-                    data = pickle.load(f)
-                    all_results[model]["done"][setup] = data["done"]
-                    all_results[model]["iters"][setup] = np.array(data["iters"])[
-                        data["done"]
-                    ]
-        else:
-            with open(f"./{results}/{model}.pkl", "rb") as f:
-                exp_data = pickle.load(f)
-            exp_done = {
-                "clear": exp_data["done"][:10],
-                "cube": exp_data["done"][10:20],
-                "wall": exp_data["done"][20:30],
-                "bucket": exp_data["done"][30:40],
-                "deep_bucket": exp_data["done"][40:],
-            }
-            exp_iters = {
-                "clear": np.array(exp_data["iters"][:10])[exp_done["clear"]],
-                "cube": np.array(exp_data["iters"][10:20])[exp_done["cube"]],
-                "wall": np.array(exp_data["iters"][20:30])[exp_done["wall"]],
-                "bucket": np.array(exp_data["iters"][30:40])[exp_done["bucket"]],
-                "deep_bucket": np.array(exp_data["iters"][40:])[
-                    exp_done["deep_bucket"]
-                ],
-            }
-            exp_time = np.reshape(exp_data["diff_times"], (-1, 1))
-            all_results[model] = {}
-            all_results[model]["done"] = exp_done
-            all_results[model]["iters"] = exp_iters
-            all_results[model]["time"] = exp_time
+        all_results[model] = {"done": {}, "iters": {}, "time": []}
+        for setup in setups:
+            with open(f"./results/{experiments}/{setup}/{model}.pkl", "rb") as f:
+                data = pickle.load(f)
+            all_results[model]["done"][setup] = data["done"]
+            all_results[model]["iters"][setup] = np.array(data["iters"])
+            all_results[model]["time"].append(sum(data["diff_times"], []))
+
+        all_results[model]["time"] = sum(all_results[model]["time"], [])
 
     return all_results
 
@@ -126,9 +96,11 @@ def plot_iters():
     if plot is True:
         plt.show()
     if save_figs:
-        fig.savefig(f"./{results}/iters.png", dpi=300)
+        fig.savefig(f"./results/{experiments}/iters.png", dpi=300)
         tikzplotlib.save(
-            f"./{results}/iters.tex", axis_height="2.2in", axis_width="3.25in"
+            f"./results/{experiments}/iters.tex",
+            axis_height="2.2in",
+            axis_width="3.25in",
         )
     plt.close()
 
@@ -172,9 +144,11 @@ def plot_done():
     if plot is True:
         plt.show()
     if save_figs:
-        fig.savefig(f"./{results}/done.png", dpi=300)
+        fig.savefig(f"./results/{experiments}/done.png", dpi=300)
         tikzplotlib.save(
-            f"./{results}/done.tex", axis_height="2.2in", axis_width="3.25in"
+            f"./results/{experiments}/done.tex",
+            axis_height="2.2in",
+            axis_width="3.25in",
         )
     plt.close()
 
@@ -206,7 +180,6 @@ def plot_time():
     ax.set_xticklabels([key.title() for key in models])
     fig.tight_layout()
 
-    # ax.set_ylim(ymin=0)
     ax.yaxis.grid(True)
 
     plt.tick_params(
@@ -219,9 +192,11 @@ def plot_time():
     if plot is True:
         plt.show()
     if save_figs:
-        fig.savefig(f"./{results}/time.png", dpi=300)
+        fig.savefig(f"./results/{experiments}/time.png", dpi=300)
         tikzplotlib.save(
-            f"./{results}/time.tex", axis_height="2.2in", axis_width="3.25in"
+            f"./results/{experiments}/time.tex",
+            axis_height="2.2in",
+            axis_width="3.25in",
         )
     plt.close()
 
