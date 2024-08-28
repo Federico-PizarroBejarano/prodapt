@@ -40,7 +40,7 @@ obs_keys = [
 
 
 def rosbag_to_dataframe(rosbag_name, plot=False):
-    bag_file = f"/home/eels/prodapt/data/ur10/{rosbag_name}/{rosbag_name}_0.db3"
+    bag_file = f"/home/{USER}/prodapt/data/ur10/{rosbag_name}/{rosbag_name}_0.db3"
     parser = BagFileParser(bag_file)
 
     data_joints = parser.get_messages("/joint_states")
@@ -240,7 +240,7 @@ def build_dataframe(data, mode):
 
 
 def build_dataset(new_dataset_name, rosbag_names, keypoint_args):
-    path = "/home/eels/prodapt/data/ur10/"
+    path = f"/home/{USER}/prodapt/data/ur10/"
 
     shutil.rmtree(path + f"{new_dataset_name}.zarr", ignore_errors=True)
     f = zarr.group(path + f"{new_dataset_name}.zarr")
@@ -310,6 +310,7 @@ def add_keypoints(df, episode_ends, keypoint_args):
 
 
 if __name__ == "__main__":
+    USER = "eels"
     rosbag_names = ["cube", "cube2"]
     new_dataset_name = "cube"
     keypoint_args = {"num_keypoints": 15, "min_dist": 0.05, "threshold_force": 1.0}
