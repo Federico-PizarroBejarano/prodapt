@@ -221,11 +221,8 @@ class DiffusionPolicy:
         if env.name == "ur10" and env.interface == "isaacsim":
             self.sock.close()
 
-        final_done = np.mean(total_results["done"])
-
-        print(f"Mean Done: {final_done}")
-
-        print(total_results)
+        print(total_results['iters'])
+        print(total_results['done'])
 
         with open(f"./results/{model_name}.pkl", "wb") as handle:
             pickle.dump(total_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -369,7 +366,6 @@ class DiffusionPolicy:
                     if done and step_idx > 50:
                         break
 
-        # print out the maximum target coverage
         print("Total Iters: ", step_idx)
 
         results = {
@@ -411,7 +407,6 @@ class DiffusionPolicy:
 
         state_dict = torch.load(input_path, map_location=device)
         self.diffusion_network.load_state_dict(state_dict)
-        print("Pretrained weights loaded.")
 
     def set_seed(self, seed):
         np.random.seed(seed)
