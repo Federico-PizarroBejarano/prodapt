@@ -15,7 +15,7 @@ plot = True
 save_figs = False
 
 models = [
-    # "cube_ours",
+    "cube_ours",
     "cube_3",
     "cube_6",
     "cube_20",
