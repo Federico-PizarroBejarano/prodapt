@@ -78,12 +78,7 @@ def plot_iters():
     ax.set_ylim(ymin=0)
     ax.yaxis.grid(True)
 
-    plt.tick_params(
-        axis="x",
-        which="both",
-        bottom=False,
-        top=False,
-    )
+    plt.tick_params(axis="x", which="both", bottom=False, top=False)
 
     if plot is True:
         plt.show()
@@ -121,12 +116,7 @@ def plot_done():
     ax.set_ylim(ymin=0)
     ax.yaxis.grid(True)
 
-    plt.tick_params(
-        axis="x",
-        which="both",
-        bottom=False,
-        top=False,
-    )
+    plt.tick_params(axis="x", which="both", bottom=False, top=False)
 
     if plot is True:
         plt.show()
@@ -164,12 +154,7 @@ def plot_time():
 
     ax.yaxis.grid(True)
 
-    plt.tick_params(
-        axis="x",
-        which="both",
-        bottom=False,
-        top=False,
-    )
+    plt.tick_params(axis="x", which="both", bottom=False, top=False)
 
     if plot is True:
         plt.show()

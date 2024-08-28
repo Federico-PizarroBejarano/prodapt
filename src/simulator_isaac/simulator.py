@@ -114,13 +114,7 @@ class Simulator:
         sock.bind("tcp://*:5555")
 
         close = False
-        setups = [
-            "no-cubes",
-            "no-cubes",
-            "3-cube-wall",
-            "narrow-bucket",
-            "J_right",
-        ]
+        setups = ["no-cubes", "no-cubes", "3-cube-wall", "narrow-bucket", "J_right"]
         setup_num = 0
         trial_num = 0
         num_trials = 10
