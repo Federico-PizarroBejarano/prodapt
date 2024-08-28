@@ -8,8 +8,8 @@ Isaac Sim is an Nvidia robotics simulator with very powerful GPU-acceleration, p
     * **IMPORTANT**: Make sure you install `2023.1.0-hotfix.1`. Later versions have made API changes.
 2. Set up envirnoment variables:
     * The [environment variables](https://docs.omniverse.nvidia.com/isaacsim/latest/manual_standalone_python.html) below must be set to their respective paths before running Python scripts.
-        * Define an `ISAACSIM_PATH` as the path to the main Isaac Sim directory (e.g. `/home/eels/.local/share/ov/pkg/isaac_sim-2023.1.0-hotfix.1`). *Tip*: If struggling to find the path where isaac_sim was installed, go to the Omniverse application. The exact file path will be mentioned under the "Setting" tab for the isaac_sim page.
-        * Define a `ISAACSIM_PYTHON_EXE` as the path to `python.sh` in the main Isaac Sim folder (e.g., `/home/eels/.local/share/ov/pkg/isaac_sim-2023.1.0-hotfix.1/python.sh`)
+        * Define an `ISAACSIM_PATH` as the path to the main Isaac Sim directory (e.g. `/home/${USER}/.local/share/ov/pkg/isaac_sim-2023.1.0-hotfix.1`). *Tip*: If struggling to find the path where isaac_sim was installed, go to the Omniverse application. The exact file path will be mentioned under the "Setting" tab for the isaac_sim page.
+        * Define a `ISAACSIM_PYTHON_EXE` as the path to `python.sh` in the main Isaac Sim folder (e.g., `/home/${USER}/.local/share/ov/pkg/isaac_sim-2023.1.0-hotfix.1/python.sh`)
 3. Verify Isaac's installation:
     * Run the example script and verify that an environment with a few cubes spawns.
     ```
