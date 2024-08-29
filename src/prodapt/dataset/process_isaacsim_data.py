@@ -45,6 +45,7 @@ def rosbag_to_dataframe(rosbag_name, plot=False):
 
     data_joints = parser.get_messages("/joint_states")
     data_commands = parser.get_messages("/joint_command")
+    # May also be /force_torque_sensor_broadcaster/wrench
     data_forces = parser.get_messages("/force_torque")
 
     df_joints = build_dataframe(data_joints, mode="joint_states")

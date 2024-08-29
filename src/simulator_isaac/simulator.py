@@ -6,7 +6,7 @@ from omni.isaac.core import World
 import omni.graph.core as og
 from omni.isaac.core.utils.prims import get_prim_at_path, get_prim_children
 
-from simulator_isaac.cube_bypass import generate_random_cubes, generate_cube_setup
+from simulator_isaac.cube_generator import generate_random_cubes, generate_cube_setup
 from simulator_isaac.force_publisher import ForcePublisher
 
 
