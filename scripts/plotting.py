@@ -42,8 +42,10 @@ def load_all_models():
         for setup in setups:
             with open(f"./results/{experiments}/{setup}/{model}.pkl", "rb") as f:
                 data = pickle.load(f)
-            all_results[model]["done"][setup] = data["done"]
-            all_results[model]["iters"][setup] = np.array(data["iters"])
+            all_results[model]["done"][setup] = np.array(data["iters"]) < 1000
+            all_results[model]["iters"][setup] = np.array(data["iters"])[
+                np.array(data["iters"]) < 1000
+            ]
             all_results[model]["time"].append(sum(data["diff_times"], []))
 
         all_results[model]["time"] = sum(all_results[model]["time"], [])
@@ -57,7 +59,7 @@ def plot_iters():
     fig = plt.figure(figsize=(16.0, 10.0))
     ax = fig.add_subplot(111)
 
-    ylabel = "Number of Iterations"
+    ylabel = "Time to Success (s)"
     ax.set_ylabel(ylabel, weight="bold", fontsize=25, labelpad=10)
 
     width = 0.5 / (len(models) + 1)
@@ -68,7 +70,7 @@ def plot_iters():
         position = ((len(models) - 1) / 2.0 - idx) * width
         for idx2, setup in enumerate(setups):
             box_plots[model][setup] = ax.boxplot(
-                all_results[model]["iters"][setup],
+                all_results[model]["iters"][setup] / 10.0,
                 positions=[idx2 * 0.5 - position],
                 widths=[width],
                 patch_artist=True,
@@ -181,6 +183,7 @@ def plot_time():
     fig.tight_layout()
 
     ax.yaxis.grid(True)
+    ax.set_ylim(ymin=0)
 
     plt.tick_params(
         axis="x",
