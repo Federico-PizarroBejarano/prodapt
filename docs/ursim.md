@@ -17,7 +17,7 @@ URSim is the dedicated simulator of Universal Robots, which accurately simulates
     ```
     Open VNC client at http://localhost:6080/vnc.html and click Connect.
     Turn on and start the robot.
-3. Start the ur-driver. In a new terminal, run
+3. Start the UR driver. In a new terminal, run
     ```bash
     docker compose up ur-driver
     ```

@@ -22,7 +22,7 @@ To accomplish this, the `spacenav` ROS package is used (https://index.ros.org/p/
     ```
 
 ### Steps
-1. (If using URSim) Turn on the UR robot (or URSim) and run the `ur-robot-driver` (either locally, in it's own container, or in the ProDapt container). Make sure the robot is externally controllable, such as by following the steps in [ursim.md](./ursim.md).
+1. (If using URSim) Turn on the UR robot (or URSim) and run the UR driver (either locally, in it's own container, or in the ProDapt container). Make sure the robot is externally controllable, such as by following the steps in [ursim.md](./ursim.md).
 2. (If using Isaac Sim) Start Isaac Sim as detailed in [isaacsim.md](./isaacsim.md). Ensure the simulation is started and not paused.
 3. Plug in the SpaceMouse.
 4. Run the `spacenav` node by running:
@@ -52,7 +52,7 @@ If you get the error
 ```
 tf2.ConnectivityException: Could not find a connection between 'base' and 'tool0' because they are not part of the same tree.Tf has two or more unconnected trees.
 ```
-or another `tf` error after running the `spacenav_converter` package, simply kill the `ur-driver` process, confirm the robot (simulated or real) is powered on and started, then restart the `ur-robot-driver`. You can check the `tf` frames are correct and connected by creating a PDF of the frames using
+or another `tf` error after running the `spacenav_converter` package, simply kill the UR driver, confirm the robot (simulated or real) is powered on and started, then restart the UR driver. You can check the `tf` frames are correct and connected by creating a PDF of the frames using
 ```bash
 ros2 run tf2_tools view_frames.py
 ```
@@ -67,7 +67,7 @@ If the robot is not moving when using the joint commands on URSim, first confirm
 ```bash
 ros2 topic info /scaled_joint_trajectory_controller/joint_trajectory
 ```
-If there are no subscribers, kill the URSim container and the `ur-driver` and restart them until the topic appears in `ros2 topic list` and has a subscriber.
+If there are no subscribers, kill the URSim container and the UR driver and restart them until the topic appears in `ros2 topic list` and has a subscriber.
 
 ---
 
