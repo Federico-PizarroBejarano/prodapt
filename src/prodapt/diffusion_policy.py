@@ -228,11 +228,8 @@ class DiffusionPolicy:
             # self.sock.send(bytes("close", "UTF-8"))
             self.sock.close()
 
-        final_done = np.mean(total_results["done"])
-
-        print(f"Mean Done: {final_done}")
-
-        print(total_results)
+        print(total_results['iters'])
+        print(total_results['done'])
 
         with open(f"./results/{model_name}.pkl", "wb") as handle:
             pickle.dump(total_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
