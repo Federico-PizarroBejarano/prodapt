@@ -100,7 +100,7 @@ class ConditionalUnet1D(nn.Module):
           in addition to diffusion step embedding. This is usually obs_horizon * obs_dim
         diffusion_step_embed_dim: Size of positional encoding for diffusion iteration k
         down_dims: Channel size for each UNet level.
-          The length of this array determines numebr of levels.
+          The length of this array determines the number of levels.
         kernel_size: Conv kernel size
         n_groups: Number of groups for GroupNorm
         """
